@@ -16,7 +16,6 @@
 *.o
 *.elf
 *.bin
-*.hex
 
 # Python
 __pycache__/
