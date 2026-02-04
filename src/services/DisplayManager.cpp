@@ -17,7 +17,10 @@ DisplayManager::DisplayManager()
     , _isAwake(false)
     , _lastActivityTime(0)
     , _lastUpdateTime(0)
-    , _currentBrightness(BRIGHTNESS_MAX) {
+    , _currentBrightness(BRIGHTNESS_MAX)
+    , _needsRedraw(false)
+    , _theme(ThemeManager::getInstance().getTheme())
+    , _hasEnvData(false) {
 }
 
 bool DisplayManager::begin() {
@@ -45,6 +48,7 @@ bool DisplayManager::begin() {
     _isAwake = true;
     _lastActivityTime = millis();
     _lastUpdateTime = millis();
+    _needsRedraw = true;
     
     DEBUG_PRINTLN("[DisplayManager] Initialization completed");
     
@@ -70,7 +74,10 @@ void DisplayManager::update() {
     // 定期更新显示（控制刷新率）
     if (currentTime - _lastUpdateTime >= 50) {  // 20fps
         _lastUpdateTime = currentTime;
-        // TODO: 更新UI内容
+        if (_needsRedraw) {
+            drawMainUI();
+            _needsRedraw = false;
+        }
     }
 }
 
@@ -79,6 +86,17 @@ void DisplayManager::clear(uint16_t color) {
     
     _tft.fillScreen(color);
     resetScreenTimeout();
+}
+
+void DisplayManager::updateEnvironmentData(const EnvironmentData& data) {
+    _envData = data;
+    _hasEnvData = true;
+    _needsRedraw = true;
+}
+
+void DisplayManager::applyTheme(const ThemeConfig& theme) {
+    _theme = theme;
+    _needsRedraw = true;
 }
 
 void DisplayManager::drawPixel(uint16_t x, uint16_t y, uint16_t color) {
@@ -226,4 +244,56 @@ void DisplayManager::drawDemoUI() {
     // 绘制十字线
     _tft.drawHLine(centerX - 30, centerY, 60, COLOR_RED);
     _tft.drawVLine(centerX, centerY - 30, 60, COLOR_RED);
+}
+
+void DisplayManager::drawMainUI() {
+    if (!_isActive || !_isAwake) return;
+
+    _tft.fillScreen(_theme.backgroundColor);
+
+    uint16_t screenWidth = _tft.width();
+    uint16_t screenHeight = _tft.height();
+
+    // 顶部标题栏
+    _tft.fillRect(0, 0, screenWidth, 32, _theme.primaryColor);
+    _tft.drawHLine(0, 32, screenWidth, _theme.accentColor);
+
+    // 右上角状态指示块
+    _tft.fillRect(screenWidth - 24, 8, 12, 12, _theme.accentColor);
+
+    // 中央内容区域边框
+    uint16_t contentTop = 40;
+    uint16_t contentHeight = screenHeight - 60;
+    _tft.drawRect(8, contentTop, screenWidth - 16, contentHeight, _theme.secondaryColor);
+
+    if (_theme.showSensors && _hasEnvData) {
+        drawEnvironmentBars(20, contentTop + 12, screenWidth - 40, contentHeight - 24);
+    }
+
+    // 底部控制栏
+    _tft.fillRect(0, screenHeight - 20, screenWidth, 20, _theme.secondaryColor);
+    _tft.drawHLine(0, screenHeight - 21, screenWidth, _theme.accentColor);
+}
+
+void DisplayManager::drawEnvironmentBars(uint16_t startX, uint16_t startY, uint16_t width, uint16_t height) {
+    if (height < 60) return;
+
+    uint16_t barWidth = width - 20;
+    uint16_t barHeight = (height - 20) / 3;
+    uint16_t gap = 6;
+
+    auto drawBar = [&](uint16_t y, float value, float minValue, float maxValue) {
+        float clamped = value;
+        if (clamped < minValue) clamped = minValue;
+        if (clamped > maxValue) clamped = maxValue;
+        float ratio = (clamped - minValue) / (maxValue - minValue);
+        uint16_t filled = static_cast<uint16_t>(barWidth * ratio);
+
+        _tft.drawRect(startX, y, barWidth, barHeight, _theme.secondaryColor);
+        _tft.fillRect(startX + 2, y + 2, filled > 4 ? filled - 4 : 0, barHeight - 4, _theme.accentColor);
+    };
+
+    drawBar(startY, _envData.temperature, TEMP_MIN_VALID, TEMP_MAX_VALID);
+    drawBar(startY + barHeight + gap, _envData.humidity, HUMI_MIN_VALID, HUMI_MAX_VALID);
+    drawBar(startY + (barHeight + gap) * 2, _envData.pressure, PRESS_MIN_VALID, PRESS_MAX_VALID);
 }

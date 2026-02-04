@@ -26,12 +26,14 @@
 #include "services/AudioManager.h"
 #include "services/ButtonManager.h"
 #include "services/RTCManager.h"
+#include "services/ThemeManager.h"
 
 // ==================== 全局对象 ====================
 SensorManager& sensorMgr = SensorManager::getInstance();
-// DisplayManager& displayMgr = DisplayManager::getInstance();
+DisplayManager& displayMgr = DisplayManager::getInstance();
+ThemeManager& themeMgr = ThemeManager::getInstance();
 // PowerManager& powerMgr = PowerManager::getInstance();
-// NetworkManager& networkMgr = NetworkManager::getInstance();
+NetworkManager& networkMgr = NetworkManager::getInstance();
 // AudioManager& audioMgr = AudioManager::getInstance();
 // ButtonManager& buttonMgr = ButtonManager::getInstance();
 // RTCManager& rtcMgr = RTCManager::getInstance();
@@ -50,8 +52,7 @@ void onSensorDataUpdate(const EnvironmentData& data) {
     DEBUG_PRINTF("[Main] Sensor update: T=%.2f°C, H=%.2f%%RH, P=%.1fhPa, L=%.0flux\n",
                  data.temperature, data.humidity, data.pressure, data.lightLevel);
     
-    // TODO: 更新显示
-    // displayMgr.updateEnvironmentData(data);
+    displayMgr.updateEnvironmentData(data);
     
     // TODO: 根据光照调整亮度
     // displayMgr.autoAdjustBrightness(data.lightLevel);
@@ -96,8 +97,7 @@ void displayTask(void* parameter) {
     DEBUG_PRINTLN("[Task] Display task started");
     
     while (true) {
-        // TODO: 更新显示
-        // displayMgr.update();
+        displayMgr.update();
         vTaskDelay(pdMS_TO_TICKS(50));  // 50ms，20fps
     }
 }
@@ -137,10 +137,16 @@ void setup() {
     sensorMgr.setDataCallback(onSensorDataUpdate);
     
     // 2. 初始化显示管理器
-    // DEBUG_PRINTLN("[Setup] Initializing display...");
-    // if (!displayMgr.begin()) {
-    //     DEBUG_PRINTLN("[Setup] ERROR: Display initialization failed!");
-    // }
+    DEBUG_PRINTLN("[Setup] Initializing theme...");
+    themeMgr.setThemeChangeCallback([](const ThemeConfig& theme) {
+        displayMgr.applyTheme(theme);
+    });
+    themeMgr.begin();
+
+    DEBUG_PRINTLN("[Setup] Initializing display...");
+    if (!displayMgr.begin()) {
+        DEBUG_PRINTLN("[Setup] ERROR: Display initialization failed!");
+    }
     
     // 3. 初始化电源管理器
     // DEBUG_PRINTLN("[Setup] Initializing power...");
@@ -162,10 +168,10 @@ void setup() {
     
     // 6. 初始化网络管理器
     #if ENABLE_WIFI
-    // DEBUG_PRINTLN("[Setup] Initializing network...");
-    // if (!networkMgr.begin()) {
-    //     DEBUG_PRINTLN("[Setup] WARNING: Network initialization failed!");
-    // }
+    DEBUG_PRINTLN("[Setup] Initializing network...");
+    if (!networkMgr.begin()) {
+        DEBUG_PRINTLN("[Setup] WARNING: Network initialization failed!");
+    }
     #endif
     
     // 7. 初始化音频管理器
@@ -191,15 +197,15 @@ void setup() {
     );
     
     // 显示任务（优先级3，Core 1）
-    // xTaskCreatePinnedToCore(
-    //     displayTask,
-    //     "DisplayTask",
-    //     4096,
-    //     NULL,
-    //     3,
-    //     &displayTaskHandle,
-    //     1
-    // );
+    xTaskCreatePinnedToCore(
+        displayTask,
+        "DisplayTask",
+        4096,
+        NULL,
+        3,
+        &displayTaskHandle,
+        1
+    );
     
     // 音频任务（优先级3，Core 0）
     #if ENABLE_VOICE

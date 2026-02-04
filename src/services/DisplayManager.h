@@ -12,6 +12,8 @@
 
 #include <Arduino.h>
 #include "display/TFTDisplay.h"
+#include "services/SensorManager.h"
+#include "services/ThemeManager.h"
 
 /**
  * @brief 显示管理器类
@@ -39,6 +41,18 @@ public:
      * @brief 更新显示（在任务中调用）
      */
     void update();
+
+    /**
+     * @brief 更新环境数据
+     * @param data 环境数据
+     */
+    void updateEnvironmentData(const EnvironmentData& data);
+
+    /**
+     * @brief 应用主题配置
+     * @param theme 主题配置
+     */
+    void applyTheme(const ThemeConfig& theme);
     
     /**
      * @brief 清屏
@@ -159,11 +173,26 @@ private:
     uint32_t _lastActivityTime;
     uint32_t _lastUpdateTime;
     uint8_t _currentBrightness;
+    bool _needsRedraw;
+
+    ThemeConfig _theme;
+    EnvironmentData _envData;
+    bool _hasEnvData;
     
     /**
      * @brief 绘制示例UI
      */
     void drawDemoUI();
+
+    /**
+     * @brief 绘制主界面
+     */
+    void drawMainUI();
+
+    /**
+     * @brief 绘制环境数据条形展示
+     */
+    void drawEnvironmentBars(uint16_t startX, uint16_t startY, uint16_t width, uint16_t height);
     
     /**
      * @brief 检查是否需要息屏
