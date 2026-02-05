@@ -29,7 +29,7 @@
 
 // ==================== 全局对象 ====================
 SensorManager& sensorMgr = SensorManager::getInstance();
-// DisplayManager& displayMgr = DisplayManager::getInstance();
+DisplayManager& displayMgr = DisplayManager::getInstance();
 // PowerManager& powerMgr = PowerManager::getInstance();
 // NetworkManager& networkMgr = NetworkManager::getInstance();
 // AudioManager& audioMgr = AudioManager::getInstance();
@@ -96,8 +96,7 @@ void displayTask(void* parameter) {
     DEBUG_PRINTLN("[Task] Display task started");
     
     while (true) {
-        // TODO: 更新显示
-        // displayMgr.update();
+        displayMgr.update();
         vTaskDelay(pdMS_TO_TICKS(50));  // 50ms，20fps
     }
 }
@@ -137,10 +136,10 @@ void setup() {
     sensorMgr.setDataCallback(onSensorDataUpdate);
     
     // 2. 初始化显示管理器
-    // DEBUG_PRINTLN("[Setup] Initializing display...");
-    // if (!displayMgr.begin()) {
-    //     DEBUG_PRINTLN("[Setup] ERROR: Display initialization failed!");
-    // }
+    DEBUG_PRINTLN("[Setup] Initializing display...");
+    if (!displayMgr.begin()) {
+        DEBUG_PRINTLN("[Setup] ERROR: Display initialization failed!");
+    }
     
     // 3. 初始化电源管理器
     // DEBUG_PRINTLN("[Setup] Initializing power...");
@@ -191,15 +190,15 @@ void setup() {
     );
     
     // 显示任务（优先级3，Core 1）
-    // xTaskCreatePinnedToCore(
-    //     displayTask,
-    //     "DisplayTask",
-    //     4096,
-    //     NULL,
-    //     3,
-    //     &displayTaskHandle,
-    //     1
-    // );
+    xTaskCreatePinnedToCore(
+        displayTask,
+        "DisplayTask",
+        4096,
+        NULL,
+        3,
+        &displayTaskHandle,
+        1
+    );
     
     // 音频任务（优先级3，Core 0）
     #if ENABLE_VOICE

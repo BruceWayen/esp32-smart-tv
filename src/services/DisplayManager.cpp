@@ -35,7 +35,7 @@ bool DisplayManager::begin() {
     
     // 清屏为黑色
     _tft.fillScreen(COLOR_BLACK);
-    
+
     // 设置初始背光
     _tft.setBacklight(BRIGHTNESS_MAX);
     _currentBrightness = BRIGHTNESS_MAX;
@@ -45,6 +45,9 @@ bool DisplayManager::begin() {
     _isAwake = true;
     _lastActivityTime = millis();
     _lastUpdateTime = millis();
+
+    // 绘制演示界面，验证屏幕点亮与显示
+    drawDemoUI();
     
     DEBUG_PRINTLN("[DisplayManager] Initialization completed");
     
@@ -210,6 +213,15 @@ void DisplayManager::checkScreenTimeout() {
 void DisplayManager::drawDemoUI() {
     if (!_isActive || !_isAwake) return;
     
+    // 背景填充为黑色
+    _tft.fillScreen(COLOR_BLACK);
+
+    // 绘制三色测试条
+    uint16_t barWidth = _tft.width() / 3;
+    _tft.fillRect(0, 0, barWidth, _tft.height(), COLOR_RED);
+    _tft.fillRect(barWidth, 0, barWidth, _tft.height(), COLOR_GREEN);
+    _tft.fillRect(barWidth * 2, 0, _tft.width() - barWidth * 2, _tft.height(), COLOR_BLUE);
+
     // 绘制标题栏
     _tft.fillRect(0, 0, _tft.width(), 30, COLOR_BLUE);
     

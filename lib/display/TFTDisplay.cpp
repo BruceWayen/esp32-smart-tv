@@ -8,61 +8,6 @@
 #include "TFTDisplay.h"
 #include "config/Config.h"
 
-// ==================== ST7789初始化序列 ====================
-const uint8_t initCmdList[] PROGMEM = {
-    // 帧率控制(正常模式)
-    ST7789_FRCTRL2, 1, 0x0F,           // 60Hz
-    
-    // VCOM设置
-    ST7789_VCOM, 1, 0x1E,
-    
-    // 伽玛设置
-    ST7789_GMCTRP1, 14,
-        0xD0, 0x05, 0x09, 0x09, 0x08, 0x14,
-        0x28, 0x33, 0x3F, 0x07, 0x13, 0x14,
-        0x28, 0x30,
-    
-    ST7789_GMCTRN1, 14,
-        0xD0, 0x05, 0x09, 0x09, 0x08, 0x03,
-        0x24, 0x32, 0x32, 0x3B, 0x14, 0x13,
-        0x28, 0x2F,
-    
-    // 列地址设置
-    ST7789_CASET, 4, 0x00, 0x00, 0x00, 0xF0,
-    
-    // 行地址设置
-    ST7789_RASET, 4, 0x00, 0x00, 0x01, 0x40,
-    
-    // 像素格式设置(RGB565)
-    ST7789_COLMOD, 1, 0x05,
-    
-    // 门极控制
-    ST7789_GCTRL, 1, 0x05,
-    
-    // 电源控制
-    ST7789_POWE1, 2, 0xA4, 0xA1,
-    
-    // 电源增强
-    0xE8, 3, 0x03, 0x00, 0x00,
-    
-    // 显示功能设置
-    ST7789_DISPFUNC, 1, 0x80,
-    
-    // 反色控制
-    ST7789_INVCTR, 1, 0x00,
-    
-    // 内存访问控制(旋转)
-    ST7789_MADCTL, 1, 0x08,
-    
-    // 显示打开
-    ST7789_DISPON, 0,
-    
-    // 退出睡眠模式
-    ST7789_SLPOUT, 0,
-    
-    0xFF  // 结束标记
-};
-
 // ==================== 成员变量初始化 ====================
 
 bool TFTDisplay::begin() {
@@ -125,34 +70,114 @@ void TFTDisplay::reset() {
 
 void TFTDisplay::initST7789() {
     DEBUG_PRINTLN("[TFT] Initializing ST7789 controller...");
-    
-    const uint8_t* addr = initCmdList;
-    uint8_t numArgs;
-    uint8_t cmd;
-    
-    while ((cmd = pgm_read_byte(addr++)) != 0xFF) {
-        numArgs = pgm_read_byte(addr++);
-        
-        // 发送命令
-        writeCommand(cmd);
-        delay(10);
-        
-        // 发送数据
-        for (uint8_t i = 0; i < numArgs; i++) {
-            writeDataByte(pgm_read_byte(addr++));
-        }
-    }
-    
-    // 等待初始化完成
-    delay(150);
-    
-    // 显示打开命令
+
+    // 像素格式 RGB565
+    writeCommand(ST7789_COLMOD);
+    writeDataByte(0x05);
+
+    // VCOM设置
+    writeCommand(0xC5);
+    writeDataByte(0x1A);
+
+    // 内存数据访问控制（默认方向，旋转后会再设置）
+    writeCommand(ST7789_MADCTL);
+    writeDataByte(0x00);
+
+    // Porch Setting
+    writeCommand(0xB2);
+    writeDataByte(0x05);
+    writeDataByte(0x05);
+    writeDataByte(0x00);
+    writeDataByte(0x33);
+    writeDataByte(0x33);
+
+    // Gate Control
+    writeCommand(0xB7);
+    writeDataByte(0x05);
+
+    // VCOM
+    writeCommand(ST7789_VCOMS);
+    writeDataByte(0x3F);
+
+    // Power control
+    writeCommand(0xC0);
+    writeDataByte(0x2C);
+
+    // VDV and VRH Command Enable
+    writeCommand(0xC2);
+    writeDataByte(0x01);
+
+    // VRH Set
+    writeCommand(0xC3);
+    writeDataByte(0x0F);
+
+    // VDV Set
+    writeCommand(0xC4);
+    writeDataByte(0x20);
+
+    // Frame Rate Control in Normal Mode
+    writeCommand(ST7789_FRCTRL2);
+    writeDataByte(0x01);
+
+    // Power Control 1
+    writeCommand(ST7789_POWE1);
+    writeDataByte(0xA4);
+    writeDataByte(0xA1);
+
+    // Power Control 1
+    writeCommand(0xE8);
+    writeDataByte(0x03);
+
+    // Equalize time control
+    writeCommand(0xE9);
+    writeDataByte(0x09);
+    writeDataByte(0x09);
+    writeDataByte(0x08);
+
+    // Gamma positive
+    writeCommand(ST7789_GMCTRP1);
+    writeDataByte(0xD0);
+    writeDataByte(0x05);
+    writeDataByte(0x09);
+    writeDataByte(0x09);
+    writeDataByte(0x08);
+    writeDataByte(0x14);
+    writeDataByte(0x28);
+    writeDataByte(0x33);
+    writeDataByte(0x3F);
+    writeDataByte(0x07);
+    writeDataByte(0x13);
+    writeDataByte(0x14);
+    writeDataByte(0x28);
+    writeDataByte(0x30);
+
+    // Gamma negative
+    writeCommand(ST7789_GMCTRN1);
+    writeDataByte(0xD0);
+    writeDataByte(0x05);
+    writeDataByte(0x09);
+    writeDataByte(0x09);
+    writeDataByte(0x08);
+    writeDataByte(0x03);
+    writeDataByte(0x24);
+    writeDataByte(0x32);
+    writeDataByte(0x32);
+    writeDataByte(0x3B);
+    writeDataByte(0x14);
+    writeDataByte(0x13);
+    writeDataByte(0x28);
+    writeDataByte(0x2F);
+
+    // 反色关闭
+    writeCommand(ST7789_INVOFF);
+
+    // 退出睡眠模式
+    writeCommand(ST7789_SLPOUT);
+    delay(120);
+
+    // 显示打开
     writeCommand(ST7789_DISPON);
     delay(10);
-    
-    // 退出睡眠
-    writeCommand(ST7789_SLPOUT);
-    delay(150);
 }
 
 void TFTDisplay::writeCommand(uint8_t cmd) {

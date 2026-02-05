@@ -25,7 +25,7 @@
 #define I2C_SCL_PIN         9
 #define I2C_FREQ_HZ         100000  // 100kHz标准模式
 
-// SPI屏幕引脚（ILI9341）
+// SPI屏幕引脚（ST7789）
 #define TFT_CS_PIN          10
 #define TFT_MOSI_PIN        11
 #define TFT_SCLK_PIN        12
@@ -79,10 +79,10 @@
 #define LIGHT_STABLE_COUNT          3       // 连续稳定次数
 
 // ==================== 屏幕配置 ====================
-#define TFT_WIDTH                   320
-#define TFT_HEIGHT                  240
+#define TFT_WIDTH                   240
+#define TFT_HEIGHT                  320
 #define TFT_SPI_FREQ_HZ             40000000    // 40MHz
-#define TFT_ROTATION                1           // 0/1/2/3 横竖屏
+#define TFT_ROTATION                0           // 0/1/2/3 横竖屏
 
 // 背光PWM配置
 #define BL_PWM_CHANNEL              0
