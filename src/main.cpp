@@ -28,6 +28,7 @@
 #include "services/RTCManager.h"
 
 // ==================== 全局对象 ====================
+// 使用单例管理各子系统，便于在不同任务与回调中共享同一实例。
 SensorManager& sensorMgr = SensorManager::getInstance();
 // DisplayManager& displayMgr = DisplayManager::getInstance();
 // PowerManager& powerMgr = PowerManager::getInstance();
@@ -37,6 +38,7 @@ SensorManager& sensorMgr = SensorManager::getInstance();
 // RTCManager& rtcMgr = RTCManager::getInstance();
 
 // ==================== 任务句柄 ====================
+// 任务句柄用于在需要时控制/查询任务状态（例如暂停或删除任务）。
 TaskHandle_t sensorTaskHandle = NULL;
 TaskHandle_t displayTaskHandle = NULL;
 TaskHandle_t audioTaskHandle = NULL;
@@ -51,9 +53,11 @@ void onSensorDataUpdate(const EnvironmentData& data) {
                  data.temperature, data.humidity, data.pressure, data.lightLevel);
     
     // TODO: 更新显示
+    // 这里通常会把最新环境数据交给显示管理器，以便刷新 UI 上的温湿度、气压等指标。
     // displayMgr.updateEnvironmentData(data);
     
     // TODO: 根据光照调整亮度
+    // 通过光照传感器数据动态调整背光，提升可读性并降低功耗。
     // displayMgr.autoAdjustBrightness(data.lightLevel);
 }
 
@@ -64,6 +68,10 @@ void onButtonPressed(int buttonId, bool isLongPress) {
     DEBUG_PRINTF("[Main] Button %d %s\n", buttonId, isLongPress ? "long pressed" : "pressed");
     
     // TODO: 处理按键逻辑
+    // 按键短按/长按通常映射为不同功能，例如：
+    // - 切换主题/页面
+    // - 调整音量或亮度
+    // - 进入/退出设置模式
 }
 
 /**
@@ -73,6 +81,7 @@ void onAlarmTriggered(int alarmId) {
     DEBUG_PRINTF("[Main] Alarm %d triggered\n", alarmId);
     
     // TODO: 播放闹钟音
+    // 可在这里调用音频管理器播放预设铃声或语音提示。
 }
 
 // ==================== FreeRTOS任务 ====================
@@ -84,7 +93,9 @@ void sensorTask(void* parameter) {
     DEBUG_PRINTLN("[Task] Sensor task started");
     
     while (true) {
+        // 更新传感器数据，内部按固定周期采样并触发回调。
         sensorMgr.update();
+        // 适度延时，避免占用过多 CPU。
         vTaskDelay(pdMS_TO_TICKS(100));  // 100ms
     }
 }
@@ -97,7 +108,9 @@ void displayTask(void* parameter) {
     
     while (true) {
         // TODO: 更新显示
+        // 显示任务通常负责 UI 刷新与动画绘制。
         // displayMgr.update();
+        // 固定帧率刷新（约 20fps）。
         vTaskDelay(pdMS_TO_TICKS(50));  // 50ms，20fps
     }
 }
@@ -110,7 +123,9 @@ void audioTask(void* parameter) {
     
     while (true) {
         // TODO: 音频处理
+        // 音频任务可用于解码播放、音量控制或语音识别等。
         // audioMgr.update();
+        // 音频处理频率相对高，使用更短的延时。
         vTaskDelay(pdMS_TO_TICKS(10));  // 10ms
     }
 }
@@ -118,7 +133,7 @@ void audioTask(void* parameter) {
 // ==================== Arduino标准函数 ====================
 
 void setup() {
-    // 串口初始化
+    // 串口初始化，用于日志输出与调试。
     Serial.begin(115200);
     delay(1000);
     
@@ -130,6 +145,7 @@ void setup() {
     DEBUG_PRINTLN("========================================\n");
     
     // 1. 初始化传感器管理器
+    // 传感器初始化失败不应阻断系统启动，但会输出警告日志。
     DEBUG_PRINTLN("[Setup] Initializing sensors...");
     if (!sensorMgr.begin()) {
         DEBUG_PRINTLN("[Setup] WARNING: Sensor initialization failed!");
@@ -177,6 +193,7 @@ void setup() {
     #endif
     
     // 创建FreeRTOS任务
+    // 将不同子系统放入独立任务，避免主循环阻塞。
     DEBUG_PRINTLN("[Setup] Creating tasks...");
     
     // 传感器任务（优先级2，Core 0）
@@ -218,7 +235,8 @@ void setup() {
 }
 
 void loop() {
-    // 主循环保持空闲，任务由FreeRTOS调度
+    // 主循环保持空闲，任务由FreeRTOS调度。
+    // 仅保留轻量级的系统健康检查与状态打印。
     
     // 定期检查系统状态
     static uint32_t lastStatusCheck = 0;

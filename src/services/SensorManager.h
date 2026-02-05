@@ -21,7 +21,7 @@ struct EnvironmentData {
     float humidity;         // 湿度(%RH)
     float pressure;         // 气压(hPa)
     float lightLevel;       // 光照(lx)
-    uint32_t timestamp;     // 时间戳
+    uint32_t timestamp;     // 时间戳(毫秒, millis)
     
     EnvironmentData() 
         : temperature(0.0f)
@@ -101,27 +101,28 @@ public:
     bool checkStatus();
 
 private:
-    // 单例模式
+    // 单例模式：禁止拷贝/赋值，保证系统中只有一个传感器管理器实例。
     SensorManager();
     ~SensorManager() = default;
     SensorManager(const SensorManager&) = delete;
     SensorManager& operator=(const SensorManager&) = delete;
     
-    // 滤波缓冲区
+    // 滤波缓冲区（移动平均）
+    // 通过固定长度的历史样本平滑传感器读数，减少噪声抖动。
     static const int FILTER_SIZE = 5;
     float _tempBuffer[FILTER_SIZE];
     float _humiBuffer[FILTER_SIZE];
     float _pressBuffer[FILTER_SIZE];
     int _bufferIndex;
     
-    // 当前数据
+    // 当前数据：保存最近一次滤波后的环境状态。
     EnvironmentData _currentData;
     
-    // 上次采样时间
+    // 上次采样时间：用于控制采样周期。
     uint32_t _lastSampleTime;
     uint32_t _lastLightSampleTime;
     
-    // 数据回调
+    // 数据回调：当新环境数据采集完成后触发。
     DataCallback _dataCallback;
     
     /**

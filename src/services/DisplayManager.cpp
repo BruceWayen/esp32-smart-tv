@@ -24,6 +24,7 @@ bool DisplayManager::begin() {
     DEBUG_PRINTLN("[DisplayManager] Initializing...");
     
     // 初始化TFT屏幕
+    // 驱动初始化失败则直接返回，避免后续调用导致异常。
     if (!_tft.begin()) {
         DEBUG_PRINTLN("[DisplayManager] ERROR: TFT initialization failed!");
         _isActive = false;
@@ -31,9 +32,11 @@ bool DisplayManager::begin() {
     }
     
     // 设置旋转角度
+    // 旋转值与硬件安装方向相关。
     _tft.setRotation(TFT_ROTATION);
     
     // 清屏为黑色
+    // 避免随机显存内容在上电时闪烁。
     _tft.fillScreen(COLOR_BLACK);
     
     // 设置初始背光
@@ -65,9 +68,11 @@ void DisplayManager::update() {
     uint32_t currentTime = millis();
     
     // 检查息屏超时
+    // 如果长时间无用户操作则自动熄屏节能。
     checkScreenTimeout();
     
     // 定期更新显示（控制刷新率）
+    // 通过固定刷新周期控制绘制频率，避免高负载。
     if (currentTime - _lastUpdateTime >= 50) {  // 20fps
         _lastUpdateTime = currentTime;
         // TODO: 更新UI内容
@@ -122,6 +127,7 @@ void DisplayManager::setBacklight(uint8_t brightness) {
     _currentBrightness = brightness;
     _tft.setBacklight(brightness);
     
+    // 输出日志便于调试亮度变化。
     DEBUG_PRINTF("[DisplayManager] Backlight set to %d\n", brightness);
 }
 
@@ -131,6 +137,7 @@ void DisplayManager::autoAdjustBrightness(float lightLevel) {
     uint8_t brightness;
     
     // 根据光照强度自动调整亮度
+    // 这里使用离散阈值，便于在低性能 MCU 上运行。
     if (lightLevel > LIGHT_LEVEL_VERY_BRIGHT) {
         brightness = BRIGHTNESS_MAX;
     } else if (lightLevel > LIGHT_LEVEL_BRIGHT) {
@@ -155,6 +162,7 @@ void DisplayManager::sleep() {
     
     DEBUG_PRINTLN("[DisplayManager] Display entering sleep mode...");
     
+    // 关闭背光并进入低功耗睡眠模式。
     _tft.backlight(false);
     _tft.sleep();
     _isAwake = false;
@@ -165,6 +173,7 @@ void DisplayManager::wakeup() {
     
     DEBUG_PRINTLN("[DisplayManager] Display waking up...");
     
+    // 恢复屏幕状态与背光。
     _tft.wakeup();
     _tft.setBacklight(_currentBrightness);
     _isAwake = true;
@@ -191,6 +200,7 @@ void DisplayManager::resetScreenTimeout() {
     _lastActivityTime = millis();
     
     // 如果屏幕在睡眠，唤醒它
+    // 用户交互（绘制）会被视作活动。
     if (!_isAwake) {
         wakeup();
     }
@@ -202,6 +212,7 @@ void DisplayManager::checkScreenTimeout() {
     uint32_t idleTime = millis() - _lastActivityTime;
     
     // 检查息屏超时
+    // 如果超过设定时长则进入休眠。
     if (idleTime > SCREEN_TIMEOUT_MS) {
         sleep();
     }
@@ -217,6 +228,7 @@ void DisplayManager::drawDemoUI() {
     _tft.fillRect(0, _tft.height() - 20, _tft.width(), 20, COLOR_GRAY);
     
     // 绘制中心演示
+    // 使用基础图形作为渲染示例。
     uint16_t centerX = _tft.width() / 2;
     uint16_t centerY = _tft.height() / 2;
     
