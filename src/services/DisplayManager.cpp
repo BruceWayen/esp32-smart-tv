@@ -7,6 +7,7 @@
 #include "DisplayManager.h"
 #include "config/Config.h"
 #include "services/WeatherIconManager.h"
+#include <TFT_Colors.h>
 
 DisplayManager& DisplayManager::getInstance() {
     static DisplayManager instance;

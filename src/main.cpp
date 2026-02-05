@@ -21,11 +21,7 @@
 #include "config/Config.h"
 #include "services/DesktopDataService.h"
 #include "services/DisplayManager.h"
-#include "services/PowerManager.h"
-#include "services/NetworkManager.h"
-#include "services/AudioManager.h"
 #include "services/ButtonManager.h"
-#include "services/RTCManager.h"
 #include "services/ThemeManager.h"
 #include "services/WeatherIconManager.h"
 
@@ -35,7 +31,6 @@ DisplayManager& displayMgr = DisplayManager::getInstance();
 ThemeManager& themeMgr = ThemeManager::getInstance();
 WeatherIconManager& iconMgr = WeatherIconManager::getInstance();
 // PowerManager& powerMgr = PowerManager::getInstance();
-NetworkManager& networkMgr = NetworkManager::getInstance();
 // AudioManager& audioMgr = AudioManager::getInstance();
 ButtonManager& buttonMgr = ButtonManager::getInstance();
 // RTCManager& rtcMgr = RTCManager::getInstance();
@@ -209,13 +204,13 @@ void setup() {
     // }
     // rtcMgr.setAlarmCallback(onAlarmTriggered);
     
-    // 6. 初始化网络管理器
-    #if ENABLE_WIFI
-    DEBUG_PRINTLN("[Setup] 初始化网络...");
-    if (!networkMgr.begin()) {
-        DEBUG_PRINTLN("[Setup] 警告：网络初始化失败");
-    }
-    #endif
+    // // 6. 初始化网络管理器
+    // #if ENABLE_WIFI
+    // DEBUG_PRINTLN("[Setup] 初始化网络...");
+    // if (!networkMgr.begin()) {
+    //     DEBUG_PRINTLN("[Setup] 警告：网络初始化失败");
+    // }
+    // #endif
     
     // 7. 初始化音频管理器
     #if ENABLE_VOICE

@@ -6,6 +6,7 @@
  */
 
 #include "MockWeatherProvider.h"
+#include <config/Config.h>
 
 struct WeatherState {
     const char* condition;

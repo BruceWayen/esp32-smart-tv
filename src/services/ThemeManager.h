@@ -10,6 +10,7 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <config/Config.h>
 
 /**
  * @brief 主题矩形布局

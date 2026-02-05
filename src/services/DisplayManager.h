@@ -11,7 +11,7 @@
 #define DISPLAY_MANAGER_H
 
 #include <Arduino.h>
-#include "display/TFTDisplay.h"
+#include "../display/TFTDisplay.h"
 #include "models/ClockInfo.h"
 #include "models/EnvironmentData.h"
 #include "models/WeatherInfo.h"
