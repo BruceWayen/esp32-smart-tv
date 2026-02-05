@@ -12,7 +12,9 @@
 
 #include <Arduino.h>
 #include "display/TFTDisplay.h"
-#include "services/SensorManager.h"
+#include "models/ClockInfo.h"
+#include "models/EnvironmentData.h"
+#include "models/WeatherInfo.h"
 #include "services/ThemeManager.h"
 
 /**
@@ -53,6 +55,18 @@ public:
      * @param theme 主题配置
      */
     void applyTheme(const ThemeConfig& theme);
+
+    /**
+     * @brief 更新天气数据
+     * @param info 天气信息
+     */
+    void updateWeatherData(const WeatherInfo& info);
+
+    /**
+     * @brief 更新时间数据
+     * @param info 时间信息
+     */
+    void updateClockData(const ClockInfo& info);
     
     /**
      * @brief 清屏
@@ -178,6 +192,10 @@ private:
     ThemeConfig _theme;
     EnvironmentData _envData;
     bool _hasEnvData;
+    WeatherInfo _weatherData;
+    bool _hasWeatherData;
+    ClockInfo _clockData;
+    bool _hasClockData;
     
     /**
      * @brief 绘制示例UI
@@ -193,6 +211,41 @@ private:
      * @brief 绘制环境数据条形展示
      */
     void drawEnvironmentBars(uint16_t startX, uint16_t startY, uint16_t width, uint16_t height);
+
+    /**
+     * @brief 绘制时钟区域
+     */
+    void drawClockSection(const ThemeLayout& layout);
+
+    /**
+     * @brief 绘制天气区域
+     */
+    void drawWeatherSection(const ThemeLayout& layout);
+
+    /**
+     * @brief 绘制传感器区域
+     */
+    void drawSensorSection(const ThemeLayout& layout);
+
+    /**
+     * @brief 绘制底部栏
+     */
+    void drawFooterSection(const ThemeLayout& layout);
+
+    /**
+     * @brief 绘制天气图标
+     */
+    void drawWeatherIcon(uint16_t x, uint16_t y, uint16_t size, const String& iconKey);
+
+    /**
+     * @brief 绘制风向指示
+     */
+    void drawWindIndicator(uint16_t x, uint16_t y, uint16_t size, const String& direction);
+
+    /**
+     * @brief 绘制居中文本
+     */
+    void drawCenteredText(uint16_t x, uint16_t y, uint16_t width, uint16_t height, const String& text, uint16_t color, uint8_t size);
     
     /**
      * @brief 检查是否需要息屏

@@ -174,8 +174,10 @@
 
 // ==================== 主题配置 ====================
 #define THEME_CONFIG_FILE           "/config/theme.json"
+#define THEMES_CONFIG_FILE          "/config/themes.json"
+#define WEATHER_ICON_CONFIG_FILE    "/config/weather_icons.json"
 #define DEFAULT_THEME_ID            1
-#define MAX_THEMES                  5
+#define MAX_THEMES                  6
 
 // ==================== 闹钟配置 ====================
 #define MAX_ALARMS                  3       // 最多3个闹钟

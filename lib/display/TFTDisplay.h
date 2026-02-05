@@ -1,11 +1,11 @@
 /**
  * @file TFTDisplay.h
- * @brief TFT屏幕驱动头文件 - ST7789控制器
+ * @brief TFT屏幕驱动头文件 - ILI9341控制器
  * @version 1.0.0
  * @date 2026-02-04
  * 
- * 2.8寸IPS屏幕驱动，320x240分辨率
- * 基于SPI接口通信
+ * 2.8寸TFT屏幕驱动，320x240分辨率
+ * 7脚SPI接口（仅写）
  */
 
 #ifndef TFT_DISPLAY_H
@@ -14,49 +14,25 @@
 #include <Arduino.h>
 #include <SPI.h>
 
-// ==================== 屏幕分辨率 ====================
-#define TFT_WIDTH           240    // 屏幕宽度(像素)
-#define TFT_HEIGHT          320    // 屏幕高度(像素)
-#define TFT_ROTATION        1      // 0/1/2/3 旋转角度
-
-// ==================== ST7789命令定义 ====================
-#define ST7789_SWRESET     0x01   // 软件重置
-#define ST7789_SLPIN       0x10   // 进入睡眠模式
-#define ST7789_SLPOUT      0x11   // 退出睡眠模式
-#define ST7789_PTLON       0x12   // 部分显示模式开启
-#define ST7789_NORON       0x13   // 正常显示模式
-#define ST7789_INVOFF      0x20   // 反色关闭
-#define ST7789_INVON       0x21   // 反色打开
-#define ST7789_GAMSET      0x26   // 伽玛曲线选择
-#define ST7789_DISPOFF     0x28   // 显示关闭
-#define ST7789_DISPON      0x29   // 显示打开
-#define ST7789_CASET       0x2A   // 列地址设置
-#define ST7789_RASET       0x2B   // 行地址设置
-#define ST7789_RAMWR       0x2C   // 内存写入
-#define ST7789_RGBSET      0x2D   // 彩色查找表
-#define ST7789_RAMRD       0x2E   // 内存读取
-#define ST7789_PTLAR       0x30   // 部分区域
-#define ST7789_VSCRDEF     0x33   // 垂直滚动定义
-#define ST7789_TEOFF       0x34   // 撕裂效应线关闭
-#define ST7789_TEON        0x35   // 撕裂效应线打开
-#define ST7789_MADCTL      0x36   // 内存数据访问控制
-#define ST7789_IDMOFF      0x38   // 空闲模式关闭
-#define ST7789_IDMON       0x39   // 空闲模式打开
-#define ST7789_COLMOD      0x3A   // 接口像素格式
-#define ST7789_RAMWRC      0x3C   // 内存写入继续
-#define ST7789_RAMRDC      0x3E   // 内存读取继续
-#define ST7789_TESCAN      0x44   // 撕裂效应扫描线
-#define ST7789_DISPFUNC    0xB6   // 显示功能设置
-#define ST7789_POWE1       0xD0   // 电源控制1
-#define ST7789_POWE2       0xD1   // 电源控制2
-#define ST7789_VCOM        0xBB   // VCOM电压
-#define ST7789_GCTRL       0xB7   // 门极控制
-#define ST7789_VCOMS       0xBB   // VCOM设置
-#define ST7789_FRCTRL2     0xC6   // 帧率控制
-#define ST7789_GCTRL2      0xB7   // 门极控制
-#define ST7789_GMCTRP1     0xE0   // 伽玛正极
-#define ST7789_GMCTRN1     0xE1   // 伽玛负极
-#define ST7789_INVCTR      0xB4   // 反色控制
+// ==================== ILI9341命令定义 ====================
+#define ILI9341_SWRESET     0x01   // 软件重置
+#define ILI9341_SLPIN       0x10   // 进入睡眠
+#define ILI9341_SLPOUT      0x11   // 退出睡眠
+#define ILI9341_DISPOFF     0x28   // 显示关闭
+#define ILI9341_DISPON      0x29   // 显示开启
+#define ILI9341_CASET       0x2A   // 列地址设置
+#define ILI9341_RASET       0x2B   // 行地址设置
+#define ILI9341_RAMWR       0x2C   // 内存写入
+#define ILI9341_MADCTL      0x36   // 内存访问控制
+#define ILI9341_PIXFMT      0x3A   // 像素格式
+#define ILI9341_FRMCTR1     0xB1   // 帧率控制
+#define ILI9341_DFUNCTR     0xB6   // 显示功能控制
+#define ILI9341_PWCTR1      0xC0   // 电源控制1
+#define ILI9341_PWCTR2      0xC1   // 电源控制2
+#define ILI9341_VMCTR1      0xC5   // VCOM控制1
+#define ILI9341_VMCTR2      0xC7   // VCOM控制2
+#define ILI9341_GMCTRP1     0xE0   // 伽玛正极
+#define ILI9341_GMCTRN1     0xE1   // 伽玛负极
 
 // ==================== 颜色定义 (RGB565) ====================
 #define COLOR_BLACK        0x0000
@@ -85,9 +61,9 @@ enum class DisplayMode {
 
 // ==================== 像素格式 ====================
 enum class PixelFormat {
-    RGB565 = 0x05,      // 16位RGB565
-    RGB444 = 0x03,      // 12位RGB444
-    RGB888 = 0x07       // 24位RGB888
+    RGB565 = 0x55,      // 16位RGB565
+    RGB666 = 0x66,      // 18位RGB666
+    RGB888 = 0x77       // 24位RGB888
 };
 
 /**
@@ -209,6 +185,35 @@ public:
      * @param brightness 亮度值(0-255)
      */
     void setBacklight(uint8_t brightness);
+
+    /**
+     * @brief 绘制单个字符
+     * @param x 起始列
+     * @param y 起始行
+     * @param c 字符
+     * @param color 字体颜色
+     * @param bg 背景颜色
+     * @param size 字体放大倍数
+     */
+    void drawChar(uint16_t x, uint16_t y, char c, uint16_t color, uint16_t bg, uint8_t size = 1);
+
+    /**
+     * @brief 绘制字符串
+     * @param x 起始列
+     * @param y 起始行
+     * @param text 文本内容
+     * @param color 字体颜色
+     * @param bg 背景颜色
+     * @param size 字体放大倍数
+     */
+    void drawText(uint16_t x, uint16_t y, const String& text, uint16_t color, uint16_t bg, uint8_t size = 1);
+
+    /**
+     * @brief 计算文本宽度
+     * @param text 文本内容
+     * @param size 字体放大倍数
+     */
+    uint16_t measureTextWidth(const String& text, uint8_t size = 1) const;
     
     /**
      * @brief 进入睡眠模式
@@ -256,9 +261,9 @@ private:
     void writeDataByte(uint8_t data);
     
     /**
-     * @brief 初始化ST7789
+     * @brief 初始化ILI9341
      */
-    void initST7789();
+    void initILI9341();
     
     /**
      * @brief 重置屏幕

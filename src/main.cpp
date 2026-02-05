@@ -19,7 +19,7 @@
 
 #include <Arduino.h>
 #include "config/Config.h"
-#include "services/SensorManager.h"
+#include "services/DesktopDataService.h"
 #include "services/DisplayManager.h"
 #include "services/PowerManager.h"
 #include "services/NetworkManager.h"
@@ -27,21 +27,24 @@
 #include "services/ButtonManager.h"
 #include "services/RTCManager.h"
 #include "services/ThemeManager.h"
+#include "services/WeatherIconManager.h"
 
 // ==================== 全局对象 ====================
-SensorManager& sensorMgr = SensorManager::getInstance();
+DesktopDataService& dataService = DesktopDataService::getInstance();
 DisplayManager& displayMgr = DisplayManager::getInstance();
 ThemeManager& themeMgr = ThemeManager::getInstance();
+WeatherIconManager& iconMgr = WeatherIconManager::getInstance();
 // PowerManager& powerMgr = PowerManager::getInstance();
 NetworkManager& networkMgr = NetworkManager::getInstance();
 // AudioManager& audioMgr = AudioManager::getInstance();
-// ButtonManager& buttonMgr = ButtonManager::getInstance();
+ButtonManager& buttonMgr = ButtonManager::getInstance();
 // RTCManager& rtcMgr = RTCManager::getInstance();
 
 // ==================== 任务句柄 ====================
-TaskHandle_t sensorTaskHandle = NULL;
+TaskHandle_t dataTaskHandle = NULL;
 TaskHandle_t displayTaskHandle = NULL;
 TaskHandle_t audioTaskHandle = NULL;
+TaskHandle_t buttonTaskHandle = NULL;
 
 // ==================== 回调函数 ====================
 
@@ -49,7 +52,7 @@ TaskHandle_t audioTaskHandle = NULL;
  * @brief 传感器数据更新回调
  */
 void onSensorDataUpdate(const EnvironmentData& data) {
-    DEBUG_PRINTF("[Main] Sensor update: T=%.2f°C, H=%.2f%%RH, P=%.1fhPa, L=%.0flux\n",
+    DEBUG_PRINTF("[Main] 环境更新: T=%.2f℃, H=%.2f%%RH, P=%.1fhPa, L=%.0flux\n",
                  data.temperature, data.humidity, data.pressure, data.lightLevel);
     
     displayMgr.updateEnvironmentData(data);
@@ -62,16 +65,38 @@ void onSensorDataUpdate(const EnvironmentData& data) {
  * @brief 按键按下回调
  */
 void onButtonPressed(int buttonId, bool isLongPress) {
-    DEBUG_PRINTF("[Main] Button %d %s\n", buttonId, isLongPress ? "long pressed" : "pressed");
-    
-    // TODO: 处理按键逻辑
+    DEBUG_PRINTF("[Main] 按键%d %s\n", buttonId, isLongPress ? "长按" : "短按");
+
+    if (!isLongPress) {
+        if (buttonId == 1) {
+            themeMgr.nextTheme();
+        } else if (buttonId == 2) {
+            themeMgr.previousTheme();
+        }
+    }
+}
+
+/**
+ * @brief 天气数据更新回调
+ */
+void onWeatherDataUpdate(const WeatherInfo& data) {
+    DEBUG_PRINTF("[Main] 天气更新: %s %.1f℃ 风速%.1fm/s\n",
+                 data.condition.c_str(), data.temperature, data.windSpeed);
+    displayMgr.updateWeatherData(data);
+}
+
+/**
+ * @brief 时间数据更新回调
+ */
+void onClockUpdate(const ClockInfo& data) {
+    displayMgr.updateClockData(data);
 }
 
 /**
  * @brief 闹钟触发回调
  */
 void onAlarmTriggered(int alarmId) {
-    DEBUG_PRINTF("[Main] Alarm %d triggered\n", alarmId);
+    DEBUG_PRINTF("[Main] 闹钟%d已触发\n", alarmId);
     
     // TODO: 播放闹钟音
 }
@@ -81,11 +106,11 @@ void onAlarmTriggered(int alarmId) {
 /**
  * @brief 传感器采集任务
  */
-void sensorTask(void* parameter) {
-    DEBUG_PRINTLN("[Task] Sensor task started");
+void dataTask(void* parameter) {
+    DEBUG_PRINTLN("[Task] 数据任务启动");
     
     while (true) {
-        sensorMgr.update();
+        dataService.update();
         vTaskDelay(pdMS_TO_TICKS(100));  // 100ms
     }
 }
@@ -94,7 +119,7 @@ void sensorTask(void* parameter) {
  * @brief 显示更新任务
  */
 void displayTask(void* parameter) {
-    DEBUG_PRINTLN("[Task] Display task started");
+    DEBUG_PRINTLN("[Task] 显示任务启动");
     
     while (true) {
         displayMgr.update();
@@ -106,12 +131,24 @@ void displayTask(void* parameter) {
  * @brief 音频处理任务
  */
 void audioTask(void* parameter) {
-    DEBUG_PRINTLN("[Task] Audio task started");
+    DEBUG_PRINTLN("[Task] 音频任务启动");
     
     while (true) {
         // TODO: 音频处理
         // audioMgr.update();
         vTaskDelay(pdMS_TO_TICKS(10));  // 10ms
+    }
+}
+
+/**
+ * @brief 按键扫描任务
+ */
+void buttonTask(void* parameter) {
+    DEBUG_PRINTLN("[Task] 按键任务启动");
+
+    while (true) {
+        buttonMgr.update();
+        vTaskDelay(pdMS_TO_TICKS(20));
     }
 }
 
@@ -124,28 +161,34 @@ void setup() {
     
     DEBUG_PRINTLN("\n\n");
     DEBUG_PRINTLN("========================================");
-    DEBUG_PRINTLN("  ESP32-S3 Smart Desktop TV");
+    DEBUG_PRINTLN("  ESP32-S3 智能桌面小电视");
     DEBUG_PRINTLN("  Version: " SYSTEM_VERSION);
     DEBUG_PRINTLN("  Build: " __DATE__ " " __TIME__);
     DEBUG_PRINTLN("========================================\n");
     
-    // 1. 初始化传感器管理器
-    DEBUG_PRINTLN("[Setup] Initializing sensors...");
-    if (!sensorMgr.begin()) {
-        DEBUG_PRINTLN("[Setup] WARNING: Sensor initialization failed!");
+    // 1. 初始化桌面数据服务
+    DEBUG_PRINTLN("[Setup] 初始化桌面数据服务...");
+    if (!dataService.begin()) {
+        DEBUG_PRINTLN("[Setup] 警告：桌面数据服务初始化失败");
     }
-    sensorMgr.setDataCallback(onSensorDataUpdate);
+    dataService.setEnvironmentCallback(onSensorDataUpdate);
+    dataService.setWeatherCallback(onWeatherDataUpdate);
+    dataService.setClockCallback(onClockUpdate);
     
-    // 2. 初始化显示管理器
-    DEBUG_PRINTLN("[Setup] Initializing theme...");
+    // 2. 初始化主题管理器
+    DEBUG_PRINTLN("[Setup] 初始化主题管理器...");
     themeMgr.setThemeChangeCallback([](const ThemeConfig& theme) {
         displayMgr.applyTheme(theme);
     });
     themeMgr.begin();
 
-    DEBUG_PRINTLN("[Setup] Initializing display...");
+    // 3. 初始化天气图标配置
+    DEBUG_PRINTLN("[Setup] 初始化天气图标配置...");
+    iconMgr.begin();
+
+    DEBUG_PRINTLN("[Setup] 初始化显示管理器...");
     if (!displayMgr.begin()) {
-        DEBUG_PRINTLN("[Setup] ERROR: Display initialization failed!");
+        DEBUG_PRINTLN("[Setup] 错误：显示初始化失败");
     }
     
     // 3. 初始化电源管理器
@@ -155,9 +198,9 @@ void setup() {
     // }
     
     // 4. 初始化按键管理器
-    // DEBUG_PRINTLN("[Setup] Initializing buttons...");
-    // buttonMgr.begin();
-    // buttonMgr.setButtonCallback(onButtonPressed);
+    DEBUG_PRINTLN("[Setup] 初始化按键...");
+    buttonMgr.begin();
+    buttonMgr.setButtonCallback(onButtonPressed);
     
     // 5. 初始化RTC管理器
     // DEBUG_PRINTLN("[Setup] Initializing RTC...");
@@ -168,9 +211,9 @@ void setup() {
     
     // 6. 初始化网络管理器
     #if ENABLE_WIFI
-    DEBUG_PRINTLN("[Setup] Initializing network...");
+    DEBUG_PRINTLN("[Setup] 初始化网络...");
     if (!networkMgr.begin()) {
-        DEBUG_PRINTLN("[Setup] WARNING: Network initialization failed!");
+        DEBUG_PRINTLN("[Setup] 警告：网络初始化失败");
     }
     #endif
     
@@ -183,16 +226,16 @@ void setup() {
     #endif
     
     // 创建FreeRTOS任务
-    DEBUG_PRINTLN("[Setup] Creating tasks...");
+    DEBUG_PRINTLN("[Setup] 创建任务...");
     
-    // 传感器任务（优先级2，Core 0）
+    // 数据任务（优先级2，Core 0）
     xTaskCreatePinnedToCore(
-        sensorTask,           // 任务函数
-        "SensorTask",         // 任务名称
+        dataTask,             // 任务函数
+        "DataTask",           // 任务名称
         4096,                 // 栈大小
         NULL,                 // 参数
         2,                    // 优先级
-        &sensorTaskHandle,    // 任务句柄
+        &dataTaskHandle,      // 任务句柄
         0                     // CPU核心
     );
     
@@ -204,6 +247,17 @@ void setup() {
         NULL,
         3,
         &displayTaskHandle,
+        1
+    );
+
+    // 按键任务（优先级2，Core 1）
+    xTaskCreatePinnedToCore(
+        buttonTask,
+        "ButtonTask",
+        2048,
+        NULL,
+        2,
+        &buttonTaskHandle,
         1
     );
     
@@ -220,7 +274,7 @@ void setup() {
     // );
     #endif
     
-    DEBUG_PRINTLN("[Setup] Initialization completed!\n");
+    DEBUG_PRINTLN("[Setup] 初始化完成！\n");
 }
 
 void loop() {
@@ -231,14 +285,13 @@ void loop() {
     if (millis() - lastStatusCheck > 60000) {  // 每分钟检查一次
         lastStatusCheck = millis();
         
-        DEBUG_PRINTLN("\n[Status] System health check:");
-        DEBUG_PRINTF("  Free heap: %d bytes\n", ESP.getFreeHeap());
-        DEBUG_PRINTF("  Min free heap: %d bytes\n", ESP.getMinFreeHeap());
-        DEBUG_PRINTF("  Uptime: %lu seconds\n", millis() / 1000);
+        DEBUG_PRINTLN("\n[状态] 系统健康检查:");
+        DEBUG_PRINTF("  剩余堆内存: %d bytes\n", ESP.getFreeHeap());
+        DEBUG_PRINTF("  最小剩余堆: %d bytes\n", ESP.getMinFreeHeap());
+        DEBUG_PRINTF("  运行时间: %lu 秒\n", millis() / 1000);
         
         // 检查传感器状态
-        bool sensorsOK = sensorMgr.checkStatus();
-        DEBUG_PRINTF("  Sensors: %s\n", sensorsOK ? "OK" : "ERROR");
+        DEBUG_PRINTLN("  数据服务: 运行中");
         
         DEBUG_PRINTLN("");
     }

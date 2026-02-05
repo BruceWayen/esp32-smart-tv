@@ -1,0 +1,118 @@
+{
+  "themes": [
+    {
+      "id": 1,
+      "name": "Classic Dark",
+      "showSensors": true,
+      "wallpaper": "/themes/theme_1.webp",
+      "colors": {
+        "background": "#000000",
+        "primary": "#1E90FF",
+        "accent": "#00FF99",
+        "secondary": "#3A3A3A"
+      },
+      "layout": {
+        "header": { "x": 0, "y": 0, "w": 320, "h": 36 },
+        "clock": { "x": 12, "y": 6, "w": 160, "h": 24 },
+        "weather": { "x": 200, "y": 44, "w": 108, "h": 80 },
+        "sensors": { "x": 12, "y": 52, "w": 186, "h": 140 },
+        "footer": { "x": 0, "y": 210, "w": 320, "h": 30 }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Aurora Blue",
+      "showSensors": true,
+      "wallpaper": "/themes/theme_2.webp",
+      "colors": {
+        "background": "#000022",
+        "primary": "#0066FF",
+        "accent": "#00FFFF",
+        "secondary": "#4A6FBF"
+      },
+      "layout": {
+        "header": { "x": 0, "y": 0, "w": 320, "h": 40 },
+        "clock": { "x": 16, "y": 8, "w": 140, "h": 24 },
+        "weather": { "x": 180, "y": 48, "w": 130, "h": 90 },
+        "sensors": { "x": 16, "y": 60, "w": 150, "h": 130 },
+        "footer": { "x": 0, "y": 208, "w": 320, "h": 32 }
+      }
+    },
+    {
+      "id": 3,
+      "name": "Sunset",
+      "showSensors": true,
+      "wallpaper": "/themes/theme_3.webp",
+      "colors": {
+        "background": "#330011",
+        "primary": "#FF6600",
+        "accent": "#FF9900",
+        "secondary": "#663366"
+      },
+      "layout": {
+        "header": { "x": 0, "y": 0, "w": 320, "h": 32 },
+        "clock": { "x": 18, "y": 4, "w": 150, "h": 24 },
+        "weather": { "x": 200, "y": 40, "w": 110, "h": 78 },
+        "sensors": { "x": 12, "y": 50, "w": 190, "h": 130 },
+        "footer": { "x": 0, "y": 206, "w": 320, "h": 34 }
+      }
+    },
+    {
+      "id": 4,
+      "name": "Forest",
+      "showSensors": true,
+      "wallpaper": "/themes/theme_4.webp",
+      "colors": {
+        "background": "#003300",
+        "primary": "#00CC66",
+        "accent": "#99FF66",
+        "secondary": "#336633"
+      },
+      "layout": {
+        "header": { "x": 0, "y": 0, "w": 320, "h": 38 },
+        "clock": { "x": 20, "y": 6, "w": 140, "h": 24 },
+        "weather": { "x": 190, "y": 50, "w": 120, "h": 80 },
+        "sensors": { "x": 12, "y": 64, "w": 170, "h": 120 },
+        "footer": { "x": 0, "y": 210, "w": 320, "h": 30 }
+      }
+    },
+    {
+      "id": 5,
+      "name": "Minimal Light",
+      "showSensors": true,
+      "wallpaper": "/themes/theme_5.webp",
+      "colors": {
+        "background": "#FFFFFF",
+        "primary": "#C0C0C0",
+        "accent": "#0000FF",
+        "secondary": "#999999"
+      },
+      "layout": {
+        "header": { "x": 0, "y": 0, "w": 320, "h": 34 },
+        "clock": { "x": 16, "y": 6, "w": 150, "h": 24 },
+        "weather": { "x": 190, "y": 42, "w": 120, "h": 86 },
+        "sensors": { "x": 16, "y": 54, "w": 170, "h": 132 },
+        "footer": { "x": 0, "y": 208, "w": 320, "h": 32 }
+      }
+    },
+    {
+      "id": 6,
+      "name": "Purple Night",
+      "showSensors": true,
+      "wallpaper": "/themes/theme_6.webp",
+      "colors": {
+        "background": "#220044",
+        "primary": "#8000FF",
+        "accent": "#FF00FF",
+        "secondary": "#553377"
+      },
+      "layout": {
+        "header": { "x": 0, "y": 0, "w": 320, "h": 36 },
+        "clock": { "x": 18, "y": 8, "w": 150, "h": 24 },
+        "weather": { "x": 200, "y": 46, "w": 110, "h": 82 },
+        "sensors": { "x": 12, "y": 58, "w": 184, "h": 130 },
+        "footer": { "x": 0, "y": 210, "w": 320, "h": 30 }
+      }
+    }
+  ]
+}

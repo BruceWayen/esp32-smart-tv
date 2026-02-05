@@ -36,7 +36,7 @@ SensorManager::SensorManager()
 }
 
 bool SensorManager::begin() {
-    DEBUG_PRINTLN("[SensorManager] Initializing...");
+    DEBUG_PRINTLN("[SensorManager] 正在初始化传感器...");
     
     // 初始化I2C总线
     Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
@@ -45,16 +45,16 @@ bool SensorManager::begin() {
     
     // 扫描I2C设备（调试用）
     #if ENABLE_SERIAL_DEBUG
-    DEBUG_PRINTLN("[SensorManager] Scanning I2C bus...");
+    DEBUG_PRINTLN("[SensorManager] 正在扫描I2C总线...");
     int deviceCount = 0;
     for (byte addr = 1; addr < 127; addr++) {
         Wire.beginTransmission(addr);
         if (Wire.endTransmission() == 0) {
-            DEBUG_PRINTF("  Found device at 0x%02X\n", addr);
+            DEBUG_PRINTF("  发现设备地址 0x%02X\n", addr);
             deviceCount++;
         }
     }
-    DEBUG_PRINTF("  Total devices found: %d\n", deviceCount);
+    DEBUG_PRINTF("  总计发现设备: %d\n", deviceCount);
     #endif
     
     // 初始化各传感器
@@ -69,22 +69,22 @@ bool SensorManager::begin() {
     
     // 检查初始化结果
     if (!aht20OK) {
-        DEBUG_PRINTLN("[SensorManager] WARNING: AHT20 init failed");
+        DEBUG_PRINTLN("[SensorManager] 警告：AHT20初始化失败");
     }
     if (!bmp280OK) {
-        DEBUG_PRINTLN("[SensorManager] WARNING: BMP280 init failed");
+        DEBUG_PRINTLN("[SensorManager] 警告：BMP280初始化失败");
     }
     if (!bh1750OK) {
-        DEBUG_PRINTLN("[SensorManager] WARNING: BH1750 init failed");
+        DEBUG_PRINTLN("[SensorManager] 警告：BH1750初始化失败");
     }
     
     // 只要有一个传感器初始化成功就返回true
     bool result = (aht20OK || bmp280OK || bh1750OK);
     
     if (result) {
-        DEBUG_PRINTLN("[SensorManager] Initialization completed");
+        DEBUG_PRINTLN("[SensorManager] 传感器初始化完成");
     } else {
-        DEBUG_PRINTLN("[SensorManager] Initialization FAILED - No sensors available!");
+        DEBUG_PRINTLN("[SensorManager] 初始化失败：未检测到传感器");
     }
     
     return result;
@@ -130,7 +130,7 @@ void SensorManager::sampleEnvironment() {
     
     _currentData.timestamp = millis();
     
-    DEBUG_PRINTF("[SensorManager] T=%.2f°C, H=%.2f%%RH, P=%.1fhPa\n",
+    DEBUG_PRINTF("[SensorManager] T=%.2f℃, H=%.2f%%RH, P=%.1fhPa\n",
                  _currentData.temperature, 
                  _currentData.humidity,
                  _currentData.pressure);
@@ -141,7 +141,7 @@ void SensorManager::sampleLight() {
         SensorData data = bh1750.read();
         if (data.status == SensorStatus::OK) {
             _currentData.lightLevel = data.value;
-            DEBUG_PRINTF("[SensorManager] Light=%.0flux\n", _currentData.lightLevel);
+            DEBUG_PRINTF("[SensorManager] 光照=%.0flux\n", _currentData.lightLevel);
         }
     }
 }
@@ -188,17 +188,17 @@ bool SensorManager::checkStatus() {
     bool allOK = true;
     
     if (!aht20.isAvailable()) {
-        DEBUG_PRINTLN("[SensorManager] AHT20 not available");
+        DEBUG_PRINTLN("[SensorManager] AHT20不可用");
         allOK = false;
     }
     
     if (!bmp280.isAvailable()) {
-        DEBUG_PRINTLN("[SensorManager] BMP280 not available");
+        DEBUG_PRINTLN("[SensorManager] BMP280不可用");
         allOK = false;
     }
     
     if (!bh1750.isAvailable()) {
-        DEBUG_PRINTLN("[SensorManager] BH1750 not available");
+        DEBUG_PRINTLN("[SensorManager] BH1750不可用");
         allOK = false;
     }
     
