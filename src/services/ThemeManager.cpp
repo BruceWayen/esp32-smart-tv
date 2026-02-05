@@ -16,13 +16,14 @@ ThemeManager& ThemeManager::getInstance() {
 
 ThemeManager::ThemeManager()
     : _currentTheme()
+    , _themeCount(0)
     , _fsReady(false)
     , _callback(nullptr) {
 }
 
 bool ThemeManager::begin() {
     if (!LittleFS.begin(true)) {
-        DEBUG_PRINTLN("[ThemeManager] ERROR: LittleFS mount failed");
+        DEBUG_PRINTLN("[ThemeManager] 错误：LittleFS挂载失败");
         _fsReady = false;
         _currentTheme = buildDefaultTheme();
         return false;
@@ -34,12 +35,17 @@ bool ThemeManager::begin() {
         LittleFS.mkdir("/config");
     }
 
+    if (!loadThemeList()) {
+        buildDefaultThemeList();
+        saveThemeList();
+    }
+
     if (!loadTheme()) {
         _currentTheme = buildDefaultTheme();
         saveTheme();
     }
 
-    DEBUG_PRINTLN("[ThemeManager] Theme loaded");
+    DEBUG_PRINTLN("[ThemeManager] 主题配置加载完成");
     return true;
 }
 
@@ -47,8 +53,20 @@ const ThemeConfig& ThemeManager::getTheme() const {
     return _currentTheme;
 }
 
+size_t ThemeManager::getThemeCount() const {
+    return _themeCount;
+}
+
+const ThemeConfig& ThemeManager::getThemeByIndex(size_t index) const {
+    if (_themeCount == 0) {
+        return _currentTheme;
+    }
+    size_t safeIndex = index % _themeCount;
+    return _themeList[safeIndex];
+}
+
 String ThemeManager::getThemeJson() const {
-    DynamicJsonDocument doc(512);
+    DynamicJsonDocument doc(1024);
     doc["id"] = _currentTheme.id;
     doc["name"] = _currentTheme.name;
     doc["showSensors"] = _currentTheme.showSensors;
@@ -60,13 +78,27 @@ String ThemeManager::getThemeJson() const {
     colors["accent"] = colorToHex(_currentTheme.accentColor);
     colors["secondary"] = colorToHex(_currentTheme.secondaryColor);
 
+    JsonObject layout = doc.createNestedObject("layout");
+    auto fillRect = [&](const char* key, const ThemeRect& rect) {
+        JsonObject item = layout.createNestedObject(key);
+        item["x"] = rect.x;
+        item["y"] = rect.y;
+        item["w"] = rect.w;
+        item["h"] = rect.h;
+    };
+    fillRect("header", _currentTheme.layout.header);
+    fillRect("clock", _currentTheme.layout.clock);
+    fillRect("weather", _currentTheme.layout.weather);
+    fillRect("sensors", _currentTheme.layout.sensors);
+    fillRect("footer", _currentTheme.layout.footer);
+
     String output;
     serializeJsonPretty(doc, output);
     return output;
 }
 
 bool ThemeManager::updateThemeFromJson(const String& json, String& error) {
-    DynamicJsonDocument doc(512);
+    DynamicJsonDocument doc(1024);
     DeserializationError err = deserializeJson(doc, json);
     if (err) {
         error = String("JSON解析失败: ") + err.c_str();
@@ -85,6 +117,25 @@ bool ThemeManager::updateThemeFromJson(const String& json, String& error) {
     }
     if (doc.containsKey("wallpaper")) {
         updated.wallpaperPath = doc["wallpaper"].as<String>();
+    }
+
+    if (doc.containsKey("layout")) {
+        JsonObject layout = doc["layout"];
+        if (layout.containsKey("header")) {
+            updated.layout.header = parseRect(layout["header"], updated.layout.header);
+        }
+        if (layout.containsKey("clock")) {
+            updated.layout.clock = parseRect(layout["clock"], updated.layout.clock);
+        }
+        if (layout.containsKey("weather")) {
+            updated.layout.weather = parseRect(layout["weather"], updated.layout.weather);
+        }
+        if (layout.containsKey("sensors")) {
+            updated.layout.sensors = parseRect(layout["sensors"], updated.layout.sensors);
+        }
+        if (layout.containsKey("footer")) {
+            updated.layout.footer = parseRect(layout["footer"], updated.layout.footer);
+        }
     }
 
     if (doc.containsKey("colors")) {
@@ -115,6 +166,58 @@ bool ThemeManager::updateThemeFromJson(const String& json, String& error) {
     }
 
     return true;
+}
+
+bool ThemeManager::nextTheme() {
+    if (_themeCount == 0) {
+        return false;
+    }
+    size_t nextIndex = 0;
+    for (size_t i = 0; i < _themeCount; i++) {
+        if (_themeList[i].id == _currentTheme.id) {
+            nextIndex = (i + 1) % _themeCount;
+            break;
+        }
+    }
+    _currentTheme = _themeList[nextIndex];
+    bool saved = saveTheme();
+    if (saved && _callback) {
+        _callback(_currentTheme);
+    }
+    return saved;
+}
+
+bool ThemeManager::previousTheme() {
+    if (_themeCount == 0) {
+        return false;
+    }
+    size_t prevIndex = 0;
+    for (size_t i = 0; i < _themeCount; i++) {
+        if (_themeList[i].id == _currentTheme.id) {
+            prevIndex = (i + _themeCount - 1) % _themeCount;
+            break;
+        }
+    }
+    _currentTheme = _themeList[prevIndex];
+    bool saved = saveTheme();
+    if (saved && _callback) {
+        _callback(_currentTheme);
+    }
+    return saved;
+}
+
+bool ThemeManager::setThemeById(uint8_t id) {
+    for (size_t i = 0; i < _themeCount; i++) {
+        if (_themeList[i].id == id) {
+            _currentTheme = _themeList[i];
+            bool saved = saveTheme();
+            if (saved && _callback) {
+                _callback(_currentTheme);
+            }
+            return saved;
+        }
+    }
+    return false;
 }
 
 void ThemeManager::setThemeChangeCallback(ThemeChangeCallback callback) {
@@ -154,6 +257,124 @@ bool ThemeManager::saveTheme() {
     return true;
 }
 
+bool ThemeManager::loadThemeList() {
+    if (!_fsReady || !LittleFS.exists(THEMES_CONFIG_FILE)) {
+        return false;
+    }
+
+    File file = LittleFS.open(THEMES_CONFIG_FILE, "r");
+    if (!file) {
+        return false;
+    }
+
+    String json = file.readString();
+    file.close();
+
+    DynamicJsonDocument doc(4096);
+    DeserializationError err = deserializeJson(doc, json);
+    if (err) {
+        DEBUG_PRINTF("[ThemeManager] 主题列表解析失败: %s\n", err.c_str());
+        return false;
+    }
+
+    JsonArray list = doc["themes"].as<JsonArray>();
+    if (list.isNull()) {
+        return false;
+    }
+
+    _themeCount = 0;
+    for (JsonVariant item : list) {
+        if (_themeCount >= MAX_THEMES) {
+            break;
+        }
+        ThemeConfig theme = buildDefaultTheme();
+        theme.id = item["id"] | theme.id;
+        theme.name = item["name"].as<String>();
+        if (theme.name.length() == 0) {
+            theme.name = String("Theme-") + theme.id;
+        }
+        theme.showSensors = item["showSensors"] | theme.showSensors;
+        theme.wallpaperPath = item["wallpaper"].as<String>();
+        if (theme.wallpaperPath.length() == 0) {
+            theme.wallpaperPath = "/themes/theme_1.webp";
+        }
+
+        if (item.containsKey("colors")) {
+            JsonObject colors = item["colors"];
+            theme.backgroundColor = parseColor(colors["background"].as<String>(), theme.backgroundColor);
+            theme.primaryColor = parseColor(colors["primary"].as<String>(), theme.primaryColor);
+            theme.accentColor = parseColor(colors["accent"].as<String>(), theme.accentColor);
+            theme.secondaryColor = parseColor(colors["secondary"].as<String>(), theme.secondaryColor);
+        }
+
+        if (item.containsKey("layout")) {
+            JsonObject layout = item["layout"];
+            theme.layout.header = parseRect(layout["header"], theme.layout.header);
+            theme.layout.clock = parseRect(layout["clock"], theme.layout.clock);
+            theme.layout.weather = parseRect(layout["weather"], theme.layout.weather);
+            theme.layout.sensors = parseRect(layout["sensors"], theme.layout.sensors);
+            theme.layout.footer = parseRect(layout["footer"], theme.layout.footer);
+        }
+
+        _themeList[_themeCount++] = theme;
+    }
+
+    if (_themeCount == 0) {
+        return false;
+    }
+
+    DEBUG_PRINTF("[ThemeManager] 主题列表加载完成，共%d套\n", _themeCount);
+    return true;
+}
+
+bool ThemeManager::saveThemeList() {
+    if (!_fsReady) {
+        return false;
+    }
+
+    DynamicJsonDocument doc(4096);
+    JsonArray list = doc.createNestedArray("themes");
+    for (size_t i = 0; i < _themeCount; i++) {
+        const ThemeConfig& theme = _themeList[i];
+        JsonObject item = list.createNestedObject();
+        item["id"] = theme.id;
+        item["name"] = theme.name;
+        item["showSensors"] = theme.showSensors;
+        item["wallpaper"] = theme.wallpaperPath;
+
+        JsonObject colors = item.createNestedObject("colors");
+        colors["background"] = colorToHex(theme.backgroundColor);
+        colors["primary"] = colorToHex(theme.primaryColor);
+        colors["accent"] = colorToHex(theme.accentColor);
+        colors["secondary"] = colorToHex(theme.secondaryColor);
+
+        JsonObject layout = item.createNestedObject("layout");
+        auto writeRect = [&](const char* key, const ThemeRect& rect) {
+            JsonObject rectObj = layout.createNestedObject(key);
+            rectObj["x"] = rect.x;
+            rectObj["y"] = rect.y;
+            rectObj["w"] = rect.w;
+            rectObj["h"] = rect.h;
+        };
+        writeRect("header", theme.layout.header);
+        writeRect("clock", theme.layout.clock);
+        writeRect("weather", theme.layout.weather);
+        writeRect("sensors", theme.layout.sensors);
+        writeRect("footer", theme.layout.footer);
+    }
+
+    File file = LittleFS.open(THEMES_CONFIG_FILE, "w");
+    if (!file) {
+        return false;
+    }
+
+    String output;
+    serializeJsonPretty(doc, output);
+    file.print(output);
+    file.close();
+    return true;
+}
+
 ThemeConfig ThemeManager::buildDefaultTheme() const {
     ThemeConfig theme;
     theme.id = DEFAULT_THEME_ID;
@@ -164,7 +385,97 @@ ThemeConfig ThemeManager::buildDefaultTheme() const {
     theme.secondaryColor = 0x39E7;
     theme.showSensors = true;
     theme.wallpaperPath = "/themes/theme_1.webp";
+    theme.layout.header = ThemeRect(0, 0, TFT_WIDTH, 36);
+    theme.layout.clock = ThemeRect(12, 6, 160, 24);
+    theme.layout.weather = ThemeRect(200, 44, 108, 80);
+    theme.layout.sensors = ThemeRect(12, 52, 186, 140);
+    theme.layout.footer = ThemeRect(0, 210, TFT_WIDTH, 30);
     return theme;
+}
+
+void ThemeManager::buildDefaultThemeList() {
+    _themeCount = 0;
+
+    ThemeConfig theme1 = buildDefaultTheme();
+    theme1.id = 1;
+    theme1.name = "Classic Dark";
+    theme1.wallpaperPath = "/themes/theme_1.webp";
+    _themeList[_themeCount++] = theme1;
+
+    ThemeConfig theme2 = buildDefaultTheme();
+    theme2.id = 2;
+    theme2.name = "Aurora Blue";
+    theme2.backgroundColor = 0x0011;
+    theme2.primaryColor = 0x0A5F;
+    theme2.accentColor = 0x07FF;
+    theme2.secondaryColor = 0x5AEB;
+    theme2.wallpaperPath = "/themes/theme_2.webp";
+    theme2.layout.header = ThemeRect(0, 0, TFT_WIDTH, 40);
+    theme2.layout.clock = ThemeRect(16, 8, 140, 24);
+    theme2.layout.weather = ThemeRect(180, 48, 130, 90);
+    theme2.layout.sensors = ThemeRect(16, 60, 150, 130);
+    theme2.layout.footer = ThemeRect(0, 208, TFT_WIDTH, 32);
+    _themeList[_themeCount++] = theme2;
+
+    ThemeConfig theme3 = buildDefaultTheme();
+    theme3.id = 3;
+    theme3.name = "Sunset";
+    theme3.backgroundColor = 0x2004;
+    theme3.primaryColor = 0xF960;
+    theme3.accentColor = 0xFD20;
+    theme3.secondaryColor = 0x49C8;
+    theme3.wallpaperPath = "/themes/theme_3.webp";
+    theme3.layout.header = ThemeRect(0, 0, TFT_WIDTH, 32);
+    theme3.layout.clock = ThemeRect(18, 4, 150, 24);
+    theme3.layout.weather = ThemeRect(200, 40, 110, 78);
+    theme3.layout.sensors = ThemeRect(12, 50, 190, 130);
+    theme3.layout.footer = ThemeRect(0, 206, TFT_WIDTH, 34);
+    _themeList[_themeCount++] = theme3;
+
+    ThemeConfig theme4 = buildDefaultTheme();
+    theme4.id = 4;
+    theme4.name = "Forest";
+    theme4.backgroundColor = 0x0200;
+    theme4.primaryColor = 0x03E0;
+    theme4.accentColor = 0x7FE0;
+    theme4.secondaryColor = 0x2A69;
+    theme4.wallpaperPath = "/themes/theme_4.webp";
+    theme4.layout.header = ThemeRect(0, 0, TFT_WIDTH, 38);
+    theme4.layout.clock = ThemeRect(20, 6, 140, 24);
+    theme4.layout.weather = ThemeRect(190, 50, 120, 80);
+    theme4.layout.sensors = ThemeRect(12, 64, 170, 120);
+    theme4.layout.footer = ThemeRect(0, 210, TFT_WIDTH, 30);
+    _themeList[_themeCount++] = theme4;
+
+    ThemeConfig theme5 = buildDefaultTheme();
+    theme5.id = 5;
+    theme5.name = "Minimal Light";
+    theme5.backgroundColor = 0xFFFF;
+    theme5.primaryColor = 0xC618;
+    theme5.accentColor = 0x001F;
+    theme5.secondaryColor = 0x7BEF;
+    theme5.wallpaperPath = "/themes/theme_5.webp";
+    theme5.layout.header = ThemeRect(0, 0, TFT_WIDTH, 34);
+    theme5.layout.clock = ThemeRect(16, 6, 150, 24);
+    theme5.layout.weather = ThemeRect(190, 42, 120, 86);
+    theme5.layout.sensors = ThemeRect(16, 54, 170, 132);
+    theme5.layout.footer = ThemeRect(0, 208, TFT_WIDTH, 32);
+    _themeList[_themeCount++] = theme5;
+
+    ThemeConfig theme6 = buildDefaultTheme();
+    theme6.id = 6;
+    theme6.name = "Purple Night";
+    theme6.backgroundColor = 0x1008;
+    theme6.primaryColor = 0x780F;
+    theme6.accentColor = 0xF81F;
+    theme6.secondaryColor = 0x318C;
+    theme6.wallpaperPath = "/themes/theme_6.webp";
+    theme6.layout.header = ThemeRect(0, 0, TFT_WIDTH, 36);
+    theme6.layout.clock = ThemeRect(18, 8, 150, 24);
+    theme6.layout.weather = ThemeRect(200, 46, 110, 82);
+    theme6.layout.sensors = ThemeRect(12, 58, 184, 130);
+    theme6.layout.footer = ThemeRect(0, 210, TFT_WIDTH, 30);
+    _themeList[_themeCount++] = theme6;
 }
 
 uint16_t ThemeManager::parseColor(const String& value, uint16_t fallback) const {
@@ -202,4 +513,16 @@ String ThemeManager::colorToHex(uint16_t color) const {
     char buffer[8];
     snprintf(buffer, sizeof(buffer), "#%02X%02X%02X", r, g, b);
     return String(buffer);
+}
+
+ThemeRect ThemeManager::parseRect(const JsonVariant& value, const ThemeRect& fallback) const {
+    if (value.isNull()) {
+        return fallback;
+    }
+    ThemeRect rect = fallback;
+    rect.x = value["x"] | rect.x;
+    rect.y = value["y"] | rect.y;
+    rect.w = value["w"] | rect.w;
+    rect.h = value["h"] | rect.h;
+    return rect;
 }

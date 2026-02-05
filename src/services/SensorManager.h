@@ -12,24 +12,7 @@
 
 #include <Arduino.h>
 #include "interfaces/ISensor.h"
-
-/**
- * @brief 环境数据结构
- */
-struct EnvironmentData {
-    float temperature;      // 温度(℃)
-    float humidity;         // 湿度(%RH)
-    float pressure;         // 气压(hPa)
-    float lightLevel;       // 光照(lx)
-    uint32_t timestamp;     // 时间戳
-    
-    EnvironmentData() 
-        : temperature(0.0f)
-        , humidity(0.0f)
-        , pressure(0.0f)
-        , lightLevel(0.0f)
-        , timestamp(0) {}
-};
+#include "models/EnvironmentData.h"
 
 /**
  * @brief 数据变化回调函数类型
