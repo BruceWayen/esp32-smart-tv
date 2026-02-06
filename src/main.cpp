@@ -24,6 +24,7 @@
 #include "services/ButtonManager.h"
 #include "services/ThemeManager.h"
 #include "services/WeatherIconManager.h"
+#include "services/NetworkManager.h"
 
 // ==================== 全局对象 ====================
 DesktopDataService& dataService = DesktopDataService::getInstance();
@@ -33,6 +34,7 @@ WeatherIconManager& iconMgr = WeatherIconManager::getInstance();
 // PowerManager& powerMgr = PowerManager::getInstance();
 // AudioManager& audioMgr = AudioManager::getInstance();
 ButtonManager& buttonMgr = ButtonManager::getInstance();
+NetworkManager& networkMgr = NetworkManager::getInstance();
 // RTCManager& rtcMgr = RTCManager::getInstance();
 
 // ==================== 任务句柄 ====================
@@ -205,12 +207,12 @@ void setup() {
     // rtcMgr.setAlarmCallback(onAlarmTriggered);
     
     // // 6. 初始化网络管理器
-    // #if ENABLE_WIFI
-    // DEBUG_PRINTLN("[Setup] 初始化网络...");
-    // if (!networkMgr.begin()) {
-    //     DEBUG_PRINTLN("[Setup] 警告：网络初始化失败");
-    // }
-    // #endif
+    #if ENABLE_WIFI
+    DEBUG_PRINTLN("[Setup] 初始化网络...");
+    if (!networkMgr.begin()) {
+        DEBUG_PRINTLN("[Setup] 警告：网络初始化失败");
+    }
+    #endif
     
     // 7. 初始化音频管理器
     #if ENABLE_VOICE
@@ -290,6 +292,10 @@ void loop() {
         
         DEBUG_PRINTLN("");
     }
+
+    #if ENABLE_WIFI
+    networkMgr.reconnectIfNeeded();
+    #endif
     
     delay(1000);  // 主循环1秒延时
 }
