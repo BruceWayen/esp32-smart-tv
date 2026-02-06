@@ -176,6 +176,7 @@
 #define THEME_CONFIG_FILE           "/config/theme.json"
 #define THEMES_CONFIG_FILE          "/config/themes.json"
 #define WEATHER_ICON_CONFIG_FILE    "/config/weather_icons.json"
+#define DEVICE_SETTINGS_FILE        "/config/device.json"
 #define USER_CONFIG_FILE            "/config/user_config.json"
 #define DEFAULT_THEME_ID            1
 #define MAX_THEMES                  6
