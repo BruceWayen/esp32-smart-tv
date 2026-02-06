@@ -8,10 +8,12 @@
 #include "DesktopDataService.h"
 #include "MockEnvironmentProvider.h"
 #include "MockWeatherProvider.h"
+#include "QWeatherProvider.h"
 #include "config/Config.h"
 
 static MockEnvironmentProvider mockEnvProvider;
 static MockWeatherProvider mockWeatherProvider;
+static QWeatherProvider qWeatherProvider;
 
 DesktopDataService& DesktopDataService::getInstance() {
     static DesktopDataService instance;
@@ -20,7 +22,7 @@ DesktopDataService& DesktopDataService::getInstance() {
 
 DesktopDataService::DesktopDataService()
     : _envProvider(&mockEnvProvider)
-    , _weatherProvider(&mockWeatherProvider)
+    , _weatherProvider(&qWeatherProvider)
     , _envCallback(nullptr)
     , _weatherCallback(nullptr)
     , _clockCallback(nullptr)
@@ -34,6 +36,11 @@ bool DesktopDataService::begin() {
 
     bool envOk = _envProvider->begin();
     bool weatherOk = _weatherProvider->begin();
+    if (!weatherOk) {
+        DEBUG_PRINTLN("[DesktopData] 使用模拟天气数据作为兜底");
+        _weatherProvider = &mockWeatherProvider;
+        weatherOk = _weatherProvider->begin();
+    }
 
     if (!envOk) {
         DEBUG_PRINTLN("[DesktopData] 警告：环境数据源初始化失败");
