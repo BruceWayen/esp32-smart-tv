@@ -177,6 +177,7 @@
 #define THEMES_CONFIG_FILE          "/config/themes.json"
 #define WEATHER_ICON_CONFIG_FILE    "/config/weather_icons.json"
 #define DEVICE_SETTINGS_FILE        "/config/device.json"
+#define USER_CONFIG_FILE            "/config/user_config.json"
 #define DEFAULT_THEME_ID            1
 #define MAX_THEMES                  6
 
@@ -188,5 +189,14 @@
 #define ASR_API_URL                 "https://api.example.com/asr"
 #define ASR_API_TIMEOUT_MS          10000
 #define TTS_API_URL                 "https://api.example.com/tts"
+
+// ==================== 和风天气配置 ====================
+#define QWEATHER_BASE_URL           "https://p42mtevfjh.re.qweatherapi.com"
+#define QWEATHER_SUB                "342J3WF4HG"
+#define QWEATHER_KID                "T6H2HHE9C7"
+#define QWEATHER_PRIVATE_KEY_PEM \
+    "-----BEGIN PRIVATE KEY-----\n" \
+    "MC4CAQAwBQYDK2VwBCIEIKMR3ZB55SjswkNAPJf6Eskv3fl0UOnqLWLKlBz0+sGx\n" \
+    "-----END PRIVATE KEY-----\n"
 
 #endif // CONFIG_H

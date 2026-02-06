@@ -25,12 +25,14 @@
 #include "services/ThemeManager.h"
 #include "services/WeatherIconManager.h"
 #include "services/NetworkManager.h"
+#include "services/WebConfigServer.h"
 
 // ==================== 全局对象 ====================
 DesktopDataService& dataService = DesktopDataService::getInstance();
 DisplayManager& displayMgr = DisplayManager::getInstance();
 ThemeManager& themeMgr = ThemeManager::getInstance();
 WeatherIconManager& iconMgr = WeatherIconManager::getInstance();
+WebConfigServer& webServer = WebConfigServer::getInstance();
 // PowerManager& powerMgr = PowerManager::getInstance();
 // AudioManager& audioMgr = AudioManager::getInstance();
 ButtonManager& buttonMgr = ButtonManager::getInstance();
@@ -211,10 +213,15 @@ void setup() {
     DEBUG_PRINTLN("[Setup] 初始化网络...");
     if (!networkMgr.begin()) {
         DEBUG_PRINTLN("[Setup] 警告：网络初始化失败");
+    // 7. 初始化Web配置服务
+    #if ENABLE_WEB_CONFIG
+    DEBUG_PRINTLN("[Setup] 初始化Web配置服务...");
+    if (!webServer.begin()) {
+        DEBUG_PRINTLN("[Setup] 警告：Web配置服务启动失败");
     }
     #endif
     
-    // 7. 初始化音频管理器
+    // 8. 初始化音频管理器
     #if ENABLE_VOICE
     // DEBUG_PRINTLN("[Setup] Initializing audio...");
     // if (!audioMgr.begin()) {
