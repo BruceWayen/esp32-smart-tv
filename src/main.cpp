@@ -208,11 +208,13 @@ void setup() {
     // }
     // rtcMgr.setAlarmCallback(onAlarmTriggered);
     
-    // // 6. 初始化网络管理器
+    // 6. 初始化网络管理器
     #if ENABLE_WIFI
     DEBUG_PRINTLN("[Setup] 初始化网络...");
     if (!networkMgr.begin()) {
         DEBUG_PRINTLN("[Setup] 警告：网络初始化失败");
+    }
+    #endif
     // 7. 初始化Web配置服务
     #if ENABLE_WEB_CONFIG
     DEBUG_PRINTLN("[Setup] 初始化Web配置服务...");

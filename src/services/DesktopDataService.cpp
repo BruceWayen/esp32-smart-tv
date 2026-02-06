@@ -6,61 +6,61 @@
  */
 
 #include "DesktopDataService.h"
-#include "MockEnvironmentProvider.h"
-#include "MockWeatherProvider.h"
 #include "QWeatherProvider.h"
 #include "config/Config.h"
 
-static MockEnvironmentProvider mockEnvProvider;
-static MockWeatherProvider mockWeatherProvider;
 static QWeatherProvider qWeatherProvider;
 
-DesktopDataService& DesktopDataService::getInstance() {
+DesktopDataService &DesktopDataService::getInstance()
+{
     static DesktopDataService instance;
     return instance;
 }
 
 DesktopDataService::DesktopDataService()
-    : _envProvider(&mockEnvProvider)
-    , _weatherProvider(&qWeatherProvider)
-    , _envCallback(nullptr)
-    , _weatherCallback(nullptr)
-    , _clockCallback(nullptr)
-    , _clock()
-    , _lastClockTick(0)
-    , _bootTimestamp(0) {}
+    : //_envProvider(&mockEnvProvider)
+      _weatherProvider(&qWeatherProvider), _envCallback(nullptr), _weatherCallback(nullptr), _clockCallback(nullptr), _clock(), _lastClockTick(0), _bootTimestamp(0)
+{
+}
 
-bool DesktopDataService::begin() {
+bool DesktopDataService::begin()
+{
     _bootTimestamp = millis();
     _lastClockTick = 0;
 
-    bool envOk = _envProvider->begin();
+    // bool envOk = _envProvider->begin();
     bool weatherOk = _weatherProvider->begin();
-    if (!weatherOk) {
+    if (!weatherOk)
+    {
         DEBUG_PRINTLN("[DesktopData] 使用模拟天气数据作为兜底");
-        _weatherProvider = &mockWeatherProvider;
+        _weatherProvider = &qWeatherProvider;
         weatherOk = _weatherProvider->begin();
     }
 
-    if (!envOk) {
-        DEBUG_PRINTLN("[DesktopData] 警告：环境数据源初始化失败");
-    }
-    if (!weatherOk) {
+    // if (!envOk) {
+    //     DEBUG_PRINTLN("[DesktopData] 警告：环境数据源初始化失败");
+    // }
+    if (!weatherOk)
+    {
         DEBUG_PRINTLN("[DesktopData] 警告：天气数据源初始化失败");
     }
 
-    return envOk || weatherOk;
+    // return envOk || weatherOk;
+    return weatherOk;
 }
 
-void DesktopDataService::update() {
-    if (_envProvider && _envProvider->update()) {
-        if (_envCallback) {
-            _envCallback(_envProvider->getData());
-        }
-    }
+void DesktopDataService::update()
+{
+    // if (_envProvider && _envProvider->update()) {
+    //     if (_envCallback) {
+    //         _envCallback(_envProvider->getData());
+    //     }
+    // }
 
-    if (_weatherProvider && _weatherProvider->update()) {
-        if (_weatherCallback) {
+    if (_weatherProvider && _weatherProvider->update())
+    {
+        if (_weatherCallback)
+        {
             _weatherCallback(_weatherProvider->getData());
         }
     }
@@ -68,21 +68,26 @@ void DesktopDataService::update() {
     updateClock();
 }
 
-void DesktopDataService::setEnvironmentCallback(EnvironmentCallback callback) {
+void DesktopDataService::setEnvironmentCallback(EnvironmentCallback callback)
+{
     _envCallback = callback;
 }
 
-void DesktopDataService::setWeatherCallback(WeatherCallback callback) {
+void DesktopDataService::setWeatherCallback(WeatherCallback callback)
+{
     _weatherCallback = callback;
 }
 
-void DesktopDataService::setClockCallback(ClockCallback callback) {
+void DesktopDataService::setClockCallback(ClockCallback callback)
+{
     _clockCallback = callback;
 }
 
-void DesktopDataService::updateClock() {
+void DesktopDataService::updateClock()
+{
     uint32_t now = millis();
-    if (now - _lastClockTick < 1000) {
+    if (now - _lastClockTick < 1000)
+    {
         return;
     }
     _lastClockTick = now;
@@ -98,7 +103,8 @@ void DesktopDataService::updateClock() {
     snprintf(dateBuffer, sizeof(dateBuffer), "2026-02-%02d", (hours % 28) + 1);
     _clock.dateText = dateBuffer;
 
-    if (_clockCallback) {
+    if (_clockCallback)
+    {
         _clockCallback(_clock);
     }
 }
