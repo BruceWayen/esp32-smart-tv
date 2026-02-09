@@ -7,6 +7,8 @@
 #include "DisplayManager.h"
 #include "config/Config.h"
 #include "services/WeatherIconManager.h"
+#include <memory>
+#include <SPIFFS.h>
 #include <TFT_Colors.h>
 
 DisplayManager& DisplayManager::getInstance() {
@@ -320,7 +322,11 @@ void DisplayManager::drawClockSection(const ThemeLayout& layout) {
 
     uint16_t timeColor = _theme.accentColor;
     uint16_t dateColor = _theme.secondaryColor;
-    uint8_t timeSize = 2;
+    uint8_t timeSize = _theme.fontSize == 0 ? 2 : _theme.fontSize;
+    if (timeSize > 4) {
+        timeSize = 4;
+    }
+    uint8_t subSize = timeSize > 1 ? timeSize - 1 : 1;
 
     uint16_t timeWidth = _tft.measureTextWidth(timeText, timeSize);
     uint16_t timeX = layout.clock.x;
@@ -330,8 +336,8 @@ void DisplayManager::drawClockSection(const ThemeLayout& layout) {
     }
     _tft.drawText(timeX, timeY, timeText, timeColor, _theme.primaryColor, timeSize);
 
-    uint16_t dateY = timeY + 18;
-    _tft.drawText(layout.clock.x, dateY, dateText, dateColor, _theme.primaryColor, 1);
+    uint16_t dateY = timeY + (8 * timeSize) + 2;
+    _tft.drawText(layout.clock.x, dateY, dateText, dateColor, _theme.primaryColor, subSize);
 }
 
 void DisplayManager::drawWeatherSection(const ThemeLayout& layout) {
@@ -350,9 +356,13 @@ void DisplayManager::drawWeatherSection(const ThemeLayout& layout) {
     drawWeatherIcon(weatherX + 6, weatherY + 6, iconSize, _hasWeatherData ? _weatherData.iconKey : "unknown");
 
     uint16_t textX = weatherX + iconSize + 12;
-    _tft.drawText(textX, weatherY + 6, tempText, _theme.accentColor, _theme.backgroundColor, 1);
-    _tft.drawText(textX, weatherY + 20, condition, _theme.secondaryColor, _theme.backgroundColor, 1);
-    _tft.drawText(textX, weatherY + 34, windText, _theme.secondaryColor, _theme.backgroundColor, 1);
+    uint8_t textSize = _theme.fontSize > 1 ? _theme.fontSize - 1 : 1;
+    if (textSize > 3) {
+        textSize = 3;
+    }
+    _tft.drawText(textX, weatherY + 6, tempText, _theme.accentColor, _theme.backgroundColor, textSize);
+    _tft.drawText(textX, weatherY + 6 + (8 * textSize) + 2, condition, _theme.secondaryColor, _theme.backgroundColor, textSize);
+    _tft.drawText(textX, weatherY + 6 + (8 * textSize) * 2 + 4, windText, _theme.secondaryColor, _theme.backgroundColor, textSize);
     drawWindIndicator(weatherX + weatherW - 20, weatherY + weatherH - 20, 12, _hasWeatherData ? _weatherData.windDir : "无风");
 }
 
@@ -373,15 +383,19 @@ void DisplayManager::drawSensorSection(const ThemeLayout& layout) {
     uint16_t barWidth = layout.sensors.w - 16;
     uint16_t barHeight = layout.sensors.h - 30;
 
-    _tft.drawText(layout.sensors.x + 8, layout.sensors.y + 4, "环境数据", _theme.accentColor, _theme.backgroundColor, 1);
+    uint8_t labelSize = _theme.fontSize > 1 ? _theme.fontSize - 1 : 1;
+    if (labelSize > 3) {
+        labelSize = 3;
+    }
+    _tft.drawText(layout.sensors.x + 8, layout.sensors.y + 4, "环境数据", _theme.accentColor, _theme.backgroundColor, labelSize);
     drawEnvironmentBars(barStartX, barStartY, barWidth, barHeight);
 
     String tempText = String("T ") + String(_envData.temperature, 1) + "C";
     String humiText = String("H ") + String(_envData.humidity, 1) + "%";
     String pressText = String("P ") + String(_envData.pressure, 1) + "hPa";
-    _tft.drawText(barStartX, layout.sensors.y + layout.sensors.h - 14, tempText, _theme.secondaryColor, _theme.backgroundColor, 1);
-    _tft.drawText(barStartX + 70, layout.sensors.y + layout.sensors.h - 14, humiText, _theme.secondaryColor, _theme.backgroundColor, 1);
-    _tft.drawText(barStartX + 140, layout.sensors.y + layout.sensors.h - 14, pressText, _theme.secondaryColor, _theme.backgroundColor, 1);
+    _tft.drawText(barStartX, layout.sensors.y + layout.sensors.h - 14, tempText, _theme.secondaryColor, _theme.backgroundColor, labelSize);
+    _tft.drawText(barStartX + 70, layout.sensors.y + layout.sensors.h - 14, humiText, _theme.secondaryColor, _theme.backgroundColor, labelSize);
+    _tft.drawText(barStartX + 140, layout.sensors.y + layout.sensors.h - 14, pressText, _theme.secondaryColor, _theme.backgroundColor, labelSize);
 }
 
 void DisplayManager::drawFooterSection(const ThemeLayout& layout) {
@@ -389,16 +403,27 @@ void DisplayManager::drawFooterSection(const ThemeLayout& layout) {
     _tft.drawHLine(layout.footer.x, layout.footer.y, layout.footer.w, _theme.accentColor);
 
     String leftText = String("主题: ") + _theme.name;
-    _tft.drawText(layout.footer.x + 6, layout.footer.y + 6, leftText, _theme.backgroundColor, _theme.secondaryColor, 1);
+    uint8_t footerSize = _theme.fontSize > 1 ? _theme.fontSize - 1 : 1;
+    if (footerSize > 2) {
+        footerSize = 2;
+    }
+    _tft.drawText(layout.footer.x + 6, layout.footer.y + 6, leftText, _theme.backgroundColor, _theme.secondaryColor, footerSize);
 
     String rightText = _theme.wallpaperPath;
-    uint16_t textWidth = _tft.measureTextWidth(rightText, 1);
+    uint16_t textWidth = _tft.measureTextWidth(rightText, footerSize);
     if (textWidth + 6 < layout.footer.w) {
-        _tft.drawText(layout.footer.x + layout.footer.w - textWidth - 6, layout.footer.y + 6, rightText, _theme.backgroundColor, _theme.secondaryColor, 1);
+        _tft.drawText(layout.footer.x + layout.footer.w - textWidth - 6, layout.footer.y + 6, rightText, _theme.backgroundColor, _theme.secondaryColor, footerSize);
     }
 }
 
 void DisplayManager::drawWeatherIcon(uint16_t x, uint16_t y, uint16_t size, const String& iconKey) {
+    String iconPath = resolveWeatherIconPath(iconKey);
+    if (iconPath.length() > 0 && SPIFFS.exists(iconPath)) {
+        if (drawWeatherIconFromFile(iconPath, x, y, size)) {
+            return;
+        }
+    }
+
     WeatherIconStyle style = WeatherIconManager::getInstance().getStyle(iconKey);
     uint16_t color = style.color;
     uint16_t centerX = x + size / 2;
@@ -423,6 +448,129 @@ void DisplayManager::drawWeatherIcon(uint16_t x, uint16_t y, uint16_t size, cons
     } else {
         _tft.drawRect(x + 2, y + 2, size - 4, size - 4, color);
     }
+}
+
+String DisplayManager::resolveWeatherIconPath(const String& iconKey) const {
+    if (_theme.iconPath.length() == 0 || iconKey.length() == 0) {
+        return "";
+    }
+    String path = _theme.iconPath;
+    if (path.indexOf("{code}") >= 0) {
+        path.replace("{code}", iconKey);
+        return path;
+    }
+    if (!path.endsWith("/")) {
+        path += "/";
+    }
+    path += iconKey;
+    path += ".bmp";
+    return path;
+}
+
+bool DisplayManager::drawWeatherIconFromFile(const String& path, uint16_t x, uint16_t y, uint16_t size) {
+    File file = SPIFFS.open(path, "r");
+    if (!file) {
+        return false;
+    }
+
+    auto read16 = [&file]() -> uint16_t {
+        uint8_t b1 = file.read();
+        uint8_t b2 = file.read();
+        return static_cast<uint16_t>(b1 | (b2 << 8));
+    };
+    auto read32 = [&file]() -> uint32_t {
+        uint32_t b1 = file.read();
+        uint32_t b2 = file.read();
+        uint32_t b3 = file.read();
+        uint32_t b4 = file.read();
+        return b1 | (b2 << 8) | (b3 << 16) | (b4 << 24);
+    };
+
+    if (read16() != 0x4D42) {
+        file.close();
+        return false;
+    }
+    read32();
+    read32();
+    uint32_t dataOffset = read32();
+    uint32_t headerSize = read32();
+    if (headerSize < 40) {
+        file.close();
+        return false;
+    }
+    int32_t width = static_cast<int32_t>(read32());
+    int32_t height = static_cast<int32_t>(read32());
+    uint16_t planes = read16();
+    uint16_t bpp = read16();
+    uint32_t compression = read32();
+
+    if (planes != 1 || (bpp != 24 && bpp != 16)) {
+        file.close();
+        return false;
+    }
+    if (compression != 0 && compression != 3) {
+        file.close();
+        return false;
+    }
+
+    bool flip = true;
+    if (height < 0) {
+        height = -height;
+        flip = false;
+    }
+    if (width <= 0 || height <= 0) {
+        file.close();
+        return false;
+    }
+
+    uint16_t drawW = static_cast<uint16_t>(width > size ? size : width);
+    uint16_t drawH = static_cast<uint16_t>(height > size ? size : height);
+    uint16_t startCol = width > drawW ? (width - drawW) / 2 : 0;
+    uint16_t startRow = height > drawH ? (height - drawH) / 2 : 0;
+    uint16_t targetX = x + (size > drawW ? (size - drawW) / 2 : 0);
+    uint16_t targetY = y + (size > drawH ? (size - drawH) / 2 : 0);
+
+    uint8_t bytesPerPixel = bpp / 8;
+    uint32_t rowSize = ((static_cast<uint32_t>(bpp) * width + 31) / 32) * 4;
+
+    std::unique_ptr<uint8_t[]> pixelBuffer(new uint8_t[drawW * bytesPerPixel]);
+    std::unique_ptr<uint8_t[]> lineBuffer(new uint8_t[drawW * 2]);
+
+    for (uint16_t row = 0; row < drawH; ++row) {
+        uint32_t fileRow = startRow + row;
+        if (flip) {
+            fileRow = (height - 1) - fileRow;
+        }
+        uint32_t rowPos = dataOffset + fileRow * rowSize + startCol * bytesPerPixel;
+        if (!file.seek(rowPos)) {
+            file.close();
+            return false;
+        }
+        size_t readBytes = file.read(pixelBuffer.get(), drawW * bytesPerPixel);
+        if (readBytes != drawW * bytesPerPixel) {
+            break;
+        }
+        for (uint16_t col = 0; col < drawW; ++col) {
+            uint16_t color = 0;
+            if (bpp == 24) {
+                uint8_t b = pixelBuffer[col * 3 + 0];
+                uint8_t g = pixelBuffer[col * 3 + 1];
+                uint8_t r = pixelBuffer[col * 3 + 2];
+                color = static_cast<uint16_t>(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3));
+            } else {
+                uint8_t b1 = pixelBuffer[col * 2 + 0];
+                uint8_t b2 = pixelBuffer[col * 2 + 1];
+                color = static_cast<uint16_t>(b1 | (b2 << 8));
+            }
+            lineBuffer[col * 2] = color >> 8;
+            lineBuffer[col * 2 + 1] = color & 0xFF;
+        }
+        _tft.setWindow(targetX, targetY + row, targetX + drawW - 1, targetY + row);
+        _tft.writeData(lineBuffer.get(), drawW * 2);
+    }
+
+    file.close();
+    return true;
 }
 
 void DisplayManager::drawWindIndicator(uint16_t x, uint16_t y, uint16_t size, const String& direction) {

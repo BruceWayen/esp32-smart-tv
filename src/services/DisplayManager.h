@@ -238,6 +238,16 @@ private:
     void drawWeatherIcon(uint16_t x, uint16_t y, uint16_t size, const String& iconKey);
 
     /**
+     * @brief 解析天气图标文件路径
+     */
+    String resolveWeatherIconPath(const String& iconKey) const;
+
+    /**
+     * @brief 从文件绘制天气图标
+     */
+    bool drawWeatherIconFromFile(const String& path, uint16_t x, uint16_t y, uint16_t size);
+
+    /**
      * @brief 绘制风向指示
      */
     void drawWindIndicator(uint16_t x, uint16_t y, uint16_t size, const String& direction);

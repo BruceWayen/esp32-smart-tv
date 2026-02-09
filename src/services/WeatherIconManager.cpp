@@ -7,7 +7,7 @@
 
 #include "WeatherIconManager.h"
 #include <ArduinoJson.h>
-#include <LittleFS.h>
+#include <SPIFFS.h>
 
 WeatherIconManager& WeatherIconManager::getInstance() {
     static WeatherIconManager instance;
@@ -19,8 +19,8 @@ WeatherIconManager::WeatherIconManager()
     , _fsReady(false) {}
 
 bool WeatherIconManager::begin() {
-    if (!LittleFS.begin(true)) {
-        DEBUG_PRINTLN("[WeatherIcon] 错误：LittleFS挂载失败，使用默认图标");
+    if (!SPIFFS.begin(true)) {
+        DEBUG_PRINTLN("[WeatherIcon] 错误：SPIFFS挂载失败，使用默认图标");
         _fsReady = false;
         loadDefaults();
         return false;
@@ -79,11 +79,11 @@ void WeatherIconManager::loadDefaults() {
 }
 
 bool WeatherIconManager::loadFromFile() {
-    if (!_fsReady || !LittleFS.exists(WEATHER_ICON_CONFIG_FILE)) {
+    if (!_fsReady || !SPIFFS.exists(WEATHER_ICON_CONFIG_FILE)) {
         return false;
     }
 
-    File file = LittleFS.open(WEATHER_ICON_CONFIG_FILE, "r");
+    File file = SPIFFS.open(WEATHER_ICON_CONFIG_FILE, "r");
     if (!file) {
         return false;
     }

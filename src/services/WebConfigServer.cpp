@@ -6,10 +6,11 @@
 
 #include "WebConfigServer.h"
 #include "config/Config.h"
+#include "services/ThemeManager.h"
 #include "services/QWeatherClient.h"
 #include "services/UserConfig.h"
 #include <ArduinoJson.h>
-#include <LittleFS.h>
+#include <SPIFFS.h>
 #include <WiFi.h>
 
 static QWeatherClient gWeatherClient;
@@ -29,8 +30,8 @@ bool WebConfigServer::begin() {
         DEBUG_PRINTLN("[Web] 用户配置初始化失败");
     }
 
-    if (!LittleFS.begin(true)) {
-        DEBUG_PRINTLN("[Web] LittleFS挂载失败");
+    if (!SPIFFS.begin(true)) {
+        DEBUG_PRINTLN("[Web] SPIFFS挂载失败");
     }
 
     // 同时开启AP+STA，便于手机配置
@@ -68,7 +69,7 @@ bool WebConfigServer::begin() {
 
 void WebConfigServer::setupRoutes() {
     // 静态资源托管
-    _server.serveStatic("/", LittleFS, "/web/").setDefaultFile("index.html");
+    _server.serveStatic("/", SPIFFS, "/web/").setDefaultFile("index.html");
 
     _server.on("/api/config", HTTP_GET, [](AsyncWebServerRequest* request) {
         const UserConfigData& config = UserConfig::getInstance().getData();
@@ -121,6 +122,65 @@ void WebConfigServer::setupRoutes() {
     _server.on("/api/weather/7d", HTTP_GET, [this](AsyncWebServerRequest* request) {
         handleWeatherDaily(request);
     });
+
+    _server.on("/api/theme", HTTP_GET, [](AsyncWebServerRequest* request) {
+        String response = ThemeManager::getInstance().getThemeJson();
+        request->send(200, "application/json", response);
+    });
+
+    _server.on("/api/theme", HTTP_POST, [](AsyncWebServerRequest* request) {
+        String body = request->arg("plain");
+        if (body.length() == 0) {
+            request->send(400, "application/json", "{\"error\":\"缺少主题配置内容\"}");
+            return;
+        }
+        String error;
+        if (!ThemeManager::getInstance().updateThemeFromJson(body, error)) {
+            String payload = String("{\"error\":\"") + error + "\"}";
+            request->send(400, "application/json", payload);
+            return;
+        }
+        request->send(200, "application/json", "{\"status\":\"ok\"}");
+    });
+
+    _server.on("/api/theme/preset", HTTP_POST, [](AsyncWebServerRequest* request) {
+        if (!ThemeManager::getInstance().resetToDefaultTheme()) {
+            request->send(500, "application/json", "{\"error\":\"生成默认主题失败\"}");
+            return;
+        }
+        request->send(200, "application/json", "{\"status\":\"ok\"}");
+    });
+
+    _server.on(
+        "/api/theme/upload",
+        HTTP_POST,
+        [](AsyncWebServerRequest* request) {
+            request->send(200, "application/json", "{\"status\":\"ok\"}");
+        },
+        [](AsyncWebServerRequest* request, const String& filename, size_t index, uint8_t* data, size_t len, bool final) {
+            (void)filename;
+            String targetPath = THEME_CONFIG_FILE;
+            if (request->hasParam("path", true)) {
+                targetPath = request->getParam("path", true)->value();
+            }
+            if (!targetPath.startsWith("/")) {
+                targetPath = "/" + targetPath;
+            }
+            if (index == 0) {
+                request->_tempFile = SPIFFS.open(targetPath, "w");
+            }
+            if (request->_tempFile) {
+                request->_tempFile.write(data, len);
+            }
+            if (final) {
+                if (request->_tempFile) {
+                    request->_tempFile.close();
+                }
+                if (targetPath == THEME_CONFIG_FILE) {
+                    ThemeManager::getInstance().reloadThemeFromFile();
+                }
+            }
+        });
 }
 
 void WebConfigServer::handleWifiUpdate(AsyncWebServerRequest* request, const String& body) {

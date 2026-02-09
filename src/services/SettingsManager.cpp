@@ -17,8 +17,8 @@ SettingsManager::SettingsManager()
 }
 
 bool SettingsManager::begin() {
-    if (!LittleFS.begin(true)) {
-        DEBUG_PRINTLN("[SettingsManager] 错误：LittleFS挂载失败");
+    if (!SPIFFS.begin(true)) {
+        DEBUG_PRINTLN("[SettingsManager] 错误：SPIFFS挂载失败");
         _fsReady = false;
         _settings = buildDefaultSettings();
         return false;
@@ -26,8 +26,8 @@ bool SettingsManager::begin() {
 
     _fsReady = true;
 
-    if (!LittleFS.exists("/config")) {
-        LittleFS.mkdir("/config");
+    if (!SPIFFS.exists("/config")) {
+        SPIFFS.mkdir("/config");
     }
 
     if (!load()) {
@@ -171,7 +171,7 @@ bool SettingsManager::save() {
         item["label"] = alarm.label;
     }
 
-    File file = LittleFS.open(DEVICE_SETTINGS_FILE, "w");
+    File file = SPIFFS.open(DEVICE_SETTINGS_FILE, "w");
     if (!file) {
         DEBUG_PRINTLN("[SettingsManager] 错误：无法写入配置文件");
         return false;
@@ -208,11 +208,11 @@ bool SettingsManager::load() {
         return false;
     }
 
-    if (!LittleFS.exists(DEVICE_SETTINGS_FILE)) {
+    if (!SPIFFS.exists(DEVICE_SETTINGS_FILE)) {
         return false;
     }
 
-    File file = LittleFS.open(DEVICE_SETTINGS_FILE, "r");
+    File file = SPIFFS.open(DEVICE_SETTINGS_FILE, "r");
     if (!file) {
         return false;
     }
@@ -308,4 +308,3 @@ uint8_t SettingsManager::parseRepeatMask(const JsonVariant& value) const {
     }
     return mask;
 }
-

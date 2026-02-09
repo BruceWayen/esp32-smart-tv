@@ -55,7 +55,9 @@ struct ThemeConfig {
     uint16_t accentColor;
     uint16_t secondaryColor;
     bool showSensors;
+    uint8_t fontSize;
     String wallpaperPath;
+    String iconPath;
     ThemeLayout layout;
 
     ThemeConfig()
@@ -66,7 +68,9 @@ struct ThemeConfig {
         , accentColor(0x07E0)
         , secondaryColor(0x7BEF)
         , showSensors(true)
+        , fontSize(2)
         , wallpaperPath("/themes/theme_1.webp")
+        , iconPath("/icons/weather/{code}.bmp")
         , layout() {}
 };
 
@@ -82,6 +86,8 @@ public:
     const ThemeConfig& getThemeByIndex(size_t index) const;
     String getThemeJson() const;
     bool updateThemeFromJson(const String& json, String& error);
+    bool resetToDefaultTheme();
+    bool reloadThemeFromFile();
     bool nextTheme();
     bool previousTheme();
     bool setThemeById(uint8_t id);
