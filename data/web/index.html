@@ -39,6 +39,17 @@
       border: 1px solid #d0d5dd;
       font-size: 14px;
     }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #d0d5dd;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      resize: vertical;
+    }
     button {
       background: #4f46e5;
       color: #fff;
@@ -62,6 +73,11 @@
     .hint {
       font-size: 12px;
       color: #64748b;
+    }
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.20.4/dist/index.js"></script>
@@ -110,9 +126,29 @@
     <div id="weather7d" class="weather-block"></div>
   </div>
 
+  <div class="card">
+    <h2>主题自定义</h2>
+    <div class="row">
+      <button id="loadTheme" class="secondary">加载主题配置</button>
+      <button id="saveTheme">保存主题配置</button>
+      <button id="presetTheme" class="secondary">生成推荐布局</button>
+    </div>
+    <div class="stack">
+      <textarea id="themeJson" placeholder="主题JSON配置"></textarea>
+      <div class="row">
+        <label for="themePath">保存路径</label>
+        <input id="themePath" type="text" value="/config/theme.json" />
+        <input id="themeFile" type="file" accept=".json" />
+        <button id="uploadTheme" class="secondary">上传主题文件</button>
+      </div>
+      <p class="hint">提示：iconPath 支持使用 {code} 占位符，例如 /icons/weather/{code}.bmp。</p>
+    </div>
+  </div>
+
   <script>
     const alarmsContainer = document.getElementById("alarms");
     const citySelect = document.getElementById("citySelect");
+    const themeTextarea = document.getElementById("themeJson");
 
     function createAlarmRow(alarm = { hour: 7, minute: 0, enabled: true, label: "" }) {
       const row = document.createElement("div");
@@ -170,6 +206,12 @@
         citySelect.appendChild(option);
         citySelect.value = data.city.id;
       }
+    }
+
+    async function loadThemeConfig() {
+      const res = await fetch("/api/theme");
+      const text = await res.text();
+      themeTextarea.value = text;
     }
 
     document.getElementById("saveWifi").addEventListener("click", async () => {
@@ -239,7 +281,61 @@
       document.getElementById("weather7d").textContent = JSON.stringify(data.daily || data, null, 2);
     });
 
+    document.getElementById("loadTheme").addEventListener("click", loadThemeConfig);
+
+    document.getElementById("saveTheme").addEventListener("click", async () => {
+      const payload = themeTextarea.value.trim();
+      if (!payload) {
+        alert("主题配置不能为空");
+        return;
+      }
+      const res = await fetch("/api/theme", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload
+      });
+      if (res.ok) {
+        alert("主题配置已保存");
+      } else {
+        const err = await res.text();
+        alert(`保存失败: ${err}`);
+      }
+    });
+
+    document.getElementById("presetTheme").addEventListener("click", async () => {
+      const res = await fetch("/api/theme/preset", { method: "POST" });
+      if (res.ok) {
+        await loadThemeConfig();
+        alert("已生成推荐布局");
+      } else {
+        alert("生成失败");
+      }
+    });
+
+    document.getElementById("uploadTheme").addEventListener("click", async () => {
+      const fileInput = document.getElementById("themeFile");
+      if (!fileInput.files.length) {
+        alert("请选择要上传的主题文件");
+        return;
+      }
+      const path = document.getElementById("themePath").value.trim() || "/config/theme.json";
+      const formData = new FormData();
+      formData.append("path", path);
+      formData.append("file", fileInput.files[0]);
+      const res = await fetch("/api/theme/upload", {
+        method: "POST",
+        body: formData
+      });
+      if (res.ok) {
+        await loadThemeConfig();
+        alert("主题文件已上传");
+      } else {
+        alert("上传失败");
+      }
+    });
+
     loadConfig();
+    loadThemeConfig();
   </script>
 </body>
 </html>

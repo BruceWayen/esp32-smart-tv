@@ -7,7 +7,7 @@
 #include "ThemeManager.h"
 #include "config/Config.h"
 #include <ArduinoJson.h>
-#include <LittleFS.h>
+#include <SPIFFS.h>
 
 ThemeManager& ThemeManager::getInstance() {
     static ThemeManager instance;
@@ -22,8 +22,8 @@ ThemeManager::ThemeManager()
 }
 
 bool ThemeManager::begin() {
-    if (!LittleFS.begin(true)) {
-        DEBUG_PRINTLN("[ThemeManager] 错误：LittleFS挂载失败");
+    if (!SPIFFS.begin(true)) {
+        DEBUG_PRINTLN("[ThemeManager] 错误：SPIFFS挂载失败");
         _fsReady = false;
         _currentTheme = buildDefaultTheme();
         return false;
@@ -31,8 +31,8 @@ bool ThemeManager::begin() {
 
     _fsReady = true;
 
-    if (!LittleFS.exists("/config")) {
-        LittleFS.mkdir("/config");
+    if (!SPIFFS.exists("/config")) {
+        SPIFFS.mkdir("/config");
     }
 
     if (!loadThemeList()) {
@@ -66,11 +66,13 @@ const ThemeConfig& ThemeManager::getThemeByIndex(size_t index) const {
 }
 
 String ThemeManager::getThemeJson() const {
-    DynamicJsonDocument doc(1024);
+    DynamicJsonDocument doc(1536);
     doc["id"] = _currentTheme.id;
     doc["name"] = _currentTheme.name;
     doc["showSensors"] = _currentTheme.showSensors;
+    doc["fontSize"] = _currentTheme.fontSize;
     doc["wallpaper"] = _currentTheme.wallpaperPath;
+    doc["iconPath"] = _currentTheme.iconPath;
 
     JsonObject colors = doc.createNestedObject("colors");
     colors["background"] = colorToHex(_currentTheme.backgroundColor);
@@ -98,7 +100,7 @@ String ThemeManager::getThemeJson() const {
 }
 
 bool ThemeManager::updateThemeFromJson(const String& json, String& error) {
-    DynamicJsonDocument doc(1024);
+    DynamicJsonDocument doc(1536);
     DeserializationError err = deserializeJson(doc, json);
     if (err) {
         error = String("JSON解析失败: ") + err.c_str();
@@ -115,8 +117,19 @@ bool ThemeManager::updateThemeFromJson(const String& json, String& error) {
     if (doc.containsKey("showSensors")) {
         updated.showSensors = doc["showSensors"].as<bool>();
     }
+    if (doc.containsKey("fontSize")) {
+        updated.fontSize = doc["fontSize"].as<uint8_t>();
+    }
     if (doc.containsKey("wallpaper")) {
         updated.wallpaperPath = doc["wallpaper"].as<String>();
+    }
+    if (doc.containsKey("iconPath")) {
+        updated.iconPath = doc["iconPath"].as<String>();
+    }
+    if (updated.fontSize == 0) {
+        updated.fontSize = 2;
+    } else if (updated.fontSize > 4) {
+        updated.fontSize = 4;
     }
 
     if (doc.containsKey("layout")) {
@@ -187,6 +200,23 @@ bool ThemeManager::nextTheme() {
     return saved;
 }
 
+bool ThemeManager::resetToDefaultTheme() {
+    _currentTheme = buildDefaultTheme();
+    bool saved = saveTheme();
+    if (saved && _callback) {
+        _callback(_currentTheme);
+    }
+    return saved;
+}
+
+bool ThemeManager::reloadThemeFromFile() {
+    bool loaded = loadTheme();
+    if (loaded && _callback) {
+        _callback(_currentTheme);
+    }
+    return loaded;
+}
+
 bool ThemeManager::previousTheme() {
     if (_themeCount == 0) {
         return false;
@@ -225,11 +255,11 @@ void ThemeManager::setThemeChangeCallback(ThemeChangeCallback callback) {
 }
 
 bool ThemeManager::loadTheme() {
-    if (!_fsReady || !LittleFS.exists(THEME_CONFIG_FILE)) {
+    if (!_fsReady || !SPIFFS.exists(THEME_CONFIG_FILE)) {
         return false;
     }
 
-    File file = LittleFS.open(THEME_CONFIG_FILE, "r");
+    File file = SPIFFS.open(THEME_CONFIG_FILE, "r");
     if (!file) {
         return false;
     }
@@ -246,7 +276,7 @@ bool ThemeManager::saveTheme() {
         return false;
     }
 
-    File file = LittleFS.open(THEME_CONFIG_FILE, "w");
+    File file = SPIFFS.open(THEME_CONFIG_FILE, "w");
     if (!file) {
         return false;
     }
@@ -258,11 +288,11 @@ bool ThemeManager::saveTheme() {
 }
 
 bool ThemeManager::loadThemeList() {
-    if (!_fsReady || !LittleFS.exists(THEMES_CONFIG_FILE)) {
+    if (!_fsReady || !SPIFFS.exists(THEMES_CONFIG_FILE)) {
         return false;
     }
 
-    File file = LittleFS.open(THEMES_CONFIG_FILE, "r");
+    File file = SPIFFS.open(THEMES_CONFIG_FILE, "r");
     if (!file) {
         return false;
     }
@@ -294,9 +324,14 @@ bool ThemeManager::loadThemeList() {
             theme.name = String("Theme-") + theme.id;
         }
         theme.showSensors = item["showSensors"] | theme.showSensors;
+        theme.fontSize = item["fontSize"] | theme.fontSize;
         theme.wallpaperPath = item["wallpaper"].as<String>();
         if (theme.wallpaperPath.length() == 0) {
             theme.wallpaperPath = "/themes/theme_1.webp";
+        }
+        theme.iconPath = item["iconPath"].as<String>();
+        if (theme.iconPath.length() == 0) {
+            theme.iconPath = "/icons/weather/{code}.bmp";
         }
 
         if (item.containsKey("colors")) {
@@ -340,7 +375,9 @@ bool ThemeManager::saveThemeList() {
         item["id"] = theme.id;
         item["name"] = theme.name;
         item["showSensors"] = theme.showSensors;
+        item["fontSize"] = theme.fontSize;
         item["wallpaper"] = theme.wallpaperPath;
+        item["iconPath"] = theme.iconPath;
 
         JsonObject colors = item.createNestedObject("colors");
         colors["background"] = colorToHex(theme.backgroundColor);
@@ -363,7 +400,7 @@ bool ThemeManager::saveThemeList() {
         writeRect("footer", theme.layout.footer);
     }
 
-    File file = LittleFS.open(THEMES_CONFIG_FILE, "w");
+    File file = SPIFFS.open(THEMES_CONFIG_FILE, "w");
     if (!file) {
         return false;
     }
@@ -378,17 +415,19 @@ bool ThemeManager::saveThemeList() {
 ThemeConfig ThemeManager::buildDefaultTheme() const {
     ThemeConfig theme;
     theme.id = DEFAULT_THEME_ID;
-    theme.name = "Classic Dark";
-    theme.backgroundColor = 0x0000;
-    theme.primaryColor = 0x001F;
-    theme.accentColor = 0x07E0;
-    theme.secondaryColor = 0x39E7;
+    theme.name = "Landscape Custom";
+    theme.backgroundColor = 0x0A12;
+    theme.primaryColor = 0x1B1C;
+    theme.accentColor = 0xFD20;
+    theme.secondaryColor = 0x4A49;
     theme.showSensors = true;
+    theme.fontSize = 3;
     theme.wallpaperPath = "/themes/theme_1.webp";
-    theme.layout.header = ThemeRect(0, 0, TFT_WIDTH, 36);
-    theme.layout.clock = ThemeRect(12, 6, 160, 24);
-    theme.layout.weather = ThemeRect(200, 44, 108, 80);
-    theme.layout.sensors = ThemeRect(12, 52, 186, 140);
+    theme.iconPath = "/icons/weather/{code}.bmp";
+    theme.layout.header = ThemeRect(0, 0, TFT_WIDTH, 28);
+    theme.layout.clock = ThemeRect(20, 36, 170, 60);
+    theme.layout.weather = ThemeRect(200, 36, 108, 80);
+    theme.layout.sensors = ThemeRect(12, 126, 296, 72);
     theme.layout.footer = ThemeRect(0, 210, TFT_WIDTH, 30);
     return theme;
 }
@@ -398,7 +437,7 @@ void ThemeManager::buildDefaultThemeList() {
 
     ThemeConfig theme1 = buildDefaultTheme();
     theme1.id = 1;
-    theme1.name = "Classic Dark";
+    theme1.name = "Landscape Custom";
     theme1.wallpaperPath = "/themes/theme_1.webp";
     _themeList[_themeCount++] = theme1;
 
@@ -409,12 +448,14 @@ void ThemeManager::buildDefaultThemeList() {
     theme2.primaryColor = 0x0A5F;
     theme2.accentColor = 0x07FF;
     theme2.secondaryColor = 0x5AEB;
+    theme2.fontSize = 3;
     theme2.wallpaperPath = "/themes/theme_2.webp";
-    theme2.layout.header = ThemeRect(0, 0, TFT_WIDTH, 40);
-    theme2.layout.clock = ThemeRect(16, 8, 140, 24);
-    theme2.layout.weather = ThemeRect(180, 48, 130, 90);
-    theme2.layout.sensors = ThemeRect(16, 60, 150, 130);
-    theme2.layout.footer = ThemeRect(0, 208, TFT_WIDTH, 32);
+    theme2.iconPath = "/icons/weather/{code}.bmp";
+    theme2.layout.header = ThemeRect(0, 0, TFT_WIDTH, 30);
+    theme2.layout.clock = ThemeRect(18, 34, 172, 60);
+    theme2.layout.weather = ThemeRect(198, 34, 110, 80);
+    theme2.layout.sensors = ThemeRect(14, 126, 296, 72);
+    theme2.layout.footer = ThemeRect(0, 210, TFT_WIDTH, 30);
     _themeList[_themeCount++] = theme2;
 
     ThemeConfig theme3 = buildDefaultTheme();
@@ -424,12 +465,14 @@ void ThemeManager::buildDefaultThemeList() {
     theme3.primaryColor = 0xF960;
     theme3.accentColor = 0xFD20;
     theme3.secondaryColor = 0x49C8;
+    theme3.fontSize = 3;
     theme3.wallpaperPath = "/themes/theme_3.webp";
-    theme3.layout.header = ThemeRect(0, 0, TFT_WIDTH, 32);
-    theme3.layout.clock = ThemeRect(18, 4, 150, 24);
-    theme3.layout.weather = ThemeRect(200, 40, 110, 78);
-    theme3.layout.sensors = ThemeRect(12, 50, 190, 130);
-    theme3.layout.footer = ThemeRect(0, 206, TFT_WIDTH, 34);
+    theme3.iconPath = "/icons/weather/{code}.bmp";
+    theme3.layout.header = ThemeRect(0, 0, TFT_WIDTH, 28);
+    theme3.layout.clock = ThemeRect(20, 36, 170, 60);
+    theme3.layout.weather = ThemeRect(200, 36, 108, 80);
+    theme3.layout.sensors = ThemeRect(12, 126, 296, 72);
+    theme3.layout.footer = ThemeRect(0, 210, TFT_WIDTH, 30);
     _themeList[_themeCount++] = theme3;
 
     ThemeConfig theme4 = buildDefaultTheme();
@@ -439,11 +482,13 @@ void ThemeManager::buildDefaultThemeList() {
     theme4.primaryColor = 0x03E0;
     theme4.accentColor = 0x7FE0;
     theme4.secondaryColor = 0x2A69;
+    theme4.fontSize = 3;
     theme4.wallpaperPath = "/themes/theme_4.webp";
-    theme4.layout.header = ThemeRect(0, 0, TFT_WIDTH, 38);
-    theme4.layout.clock = ThemeRect(20, 6, 140, 24);
-    theme4.layout.weather = ThemeRect(190, 50, 120, 80);
-    theme4.layout.sensors = ThemeRect(12, 64, 170, 120);
+    theme4.iconPath = "/icons/weather/{code}.bmp";
+    theme4.layout.header = ThemeRect(0, 0, TFT_WIDTH, 28);
+    theme4.layout.clock = ThemeRect(20, 36, 170, 60);
+    theme4.layout.weather = ThemeRect(200, 36, 108, 80);
+    theme4.layout.sensors = ThemeRect(12, 126, 296, 72);
     theme4.layout.footer = ThemeRect(0, 210, TFT_WIDTH, 30);
     _themeList[_themeCount++] = theme4;
 
@@ -454,12 +499,14 @@ void ThemeManager::buildDefaultThemeList() {
     theme5.primaryColor = 0xC618;
     theme5.accentColor = 0x001F;
     theme5.secondaryColor = 0x7BEF;
+    theme5.fontSize = 3;
     theme5.wallpaperPath = "/themes/theme_5.webp";
-    theme5.layout.header = ThemeRect(0, 0, TFT_WIDTH, 34);
-    theme5.layout.clock = ThemeRect(16, 6, 150, 24);
-    theme5.layout.weather = ThemeRect(190, 42, 120, 86);
-    theme5.layout.sensors = ThemeRect(16, 54, 170, 132);
-    theme5.layout.footer = ThemeRect(0, 208, TFT_WIDTH, 32);
+    theme5.iconPath = "/icons/weather/{code}.bmp";
+    theme5.layout.header = ThemeRect(0, 0, TFT_WIDTH, 28);
+    theme5.layout.clock = ThemeRect(20, 36, 170, 60);
+    theme5.layout.weather = ThemeRect(200, 36, 108, 80);
+    theme5.layout.sensors = ThemeRect(12, 126, 296, 72);
+    theme5.layout.footer = ThemeRect(0, 210, TFT_WIDTH, 30);
     _themeList[_themeCount++] = theme5;
 
     ThemeConfig theme6 = buildDefaultTheme();
@@ -469,11 +516,13 @@ void ThemeManager::buildDefaultThemeList() {
     theme6.primaryColor = 0x780F;
     theme6.accentColor = 0xF81F;
     theme6.secondaryColor = 0x318C;
+    theme6.fontSize = 3;
     theme6.wallpaperPath = "/themes/theme_6.webp";
-    theme6.layout.header = ThemeRect(0, 0, TFT_WIDTH, 36);
-    theme6.layout.clock = ThemeRect(18, 8, 150, 24);
-    theme6.layout.weather = ThemeRect(200, 46, 110, 82);
-    theme6.layout.sensors = ThemeRect(12, 58, 184, 130);
+    theme6.iconPath = "/icons/weather/{code}.bmp";
+    theme6.layout.header = ThemeRect(0, 0, TFT_WIDTH, 28);
+    theme6.layout.clock = ThemeRect(20, 36, 170, 60);
+    theme6.layout.weather = ThemeRect(200, 36, 108, 80);
+    theme6.layout.sensors = ThemeRect(12, 126, 296, 72);
     theme6.layout.footer = ThemeRect(0, 210, TFT_WIDTH, 30);
     _themeList[_themeCount++] = theme6;
 }

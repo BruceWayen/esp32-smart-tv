@@ -82,19 +82,5 @@ String QWeatherProvider::mapIconCodeToKey(const String& iconCode) const {
     if (iconCode.isEmpty()) {
         return "unknown";
     }
-
-    int code = iconCode.toInt();
-    if (code == 100) {
-        return "sunny";
-    }
-    if (code >= 101 && code <= 104) {
-        return "cloudy";
-    }
-    if (code >= 300 && code <= 399) {
-        return "rain";
-    }
-    if (code >= 400 && code <= 499) {
-        return "snow";
-    }
-    return "unknown";
+    return iconCode;
 }

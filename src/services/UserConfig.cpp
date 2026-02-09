@@ -7,7 +7,7 @@
 #include "UserConfig.h"
 #include "config/Config.h"
 #include <ArduinoJson.h>
-#include <LittleFS.h>
+#include <SPIFFS.h>
 
 UserConfig& UserConfig::getInstance() {
     static UserConfig instance;
@@ -19,15 +19,15 @@ UserConfig::UserConfig()
     , _fsReady(false) {}
 
 bool UserConfig::begin() {
-    if (!LittleFS.begin(true)) {
-        DEBUG_PRINTLN("[配置] LittleFS挂载失败");
+    if (!SPIFFS.begin(true)) {
+        DEBUG_PRINTLN("[配置] SPIFFS挂载失败");
         _fsReady = false;
         return false;
     }
 
     _fsReady = true;
-    if (!LittleFS.exists("/config")) {
-        LittleFS.mkdir("/config");
+    if (!SPIFFS.exists("/config")) {
+        SPIFFS.mkdir("/config");
     }
 
     if (!load()) {
@@ -64,11 +64,11 @@ bool UserConfig::load() {
         return false;
     }
 
-    if (!LittleFS.exists(USER_CONFIG_FILE)) {
+    if (!SPIFFS.exists(USER_CONFIG_FILE)) {
         return false;
     }
 
-    File file = LittleFS.open(USER_CONFIG_FILE, "r");
+    File file = SPIFFS.open(USER_CONFIG_FILE, "r");
     if (!file) {
         DEBUG_PRINTLN("[配置] 配置文件打开失败");
         return false;
@@ -125,7 +125,7 @@ bool UserConfig::save() {
         item["label"] = alarm.label;
     }
 
-    File file = LittleFS.open(USER_CONFIG_FILE, "w");
+    File file = SPIFFS.open(USER_CONFIG_FILE, "w");
     if (!file) {
         DEBUG_PRINTLN("[配置] 配置保存失败");
         return false;

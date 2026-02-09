@@ -10,7 +10,7 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <LittleFS.h>
+#include <SPIFFS.h>
 #include "config/Config.h"
 
 struct WifiConfig {
