@@ -7,9 +7,11 @@
 
 #include "DesktopDataService.h"
 #include "QWeatherProvider.h"
+#include "services/EnvironmentMonitor.h"
 #include "config/Config.h"
 
 static QWeatherProvider qWeatherProvider;
+static EnvironmentMonitor envMonitor;
 
 DesktopDataService &DesktopDataService::getInstance()
 {
@@ -18,8 +20,14 @@ DesktopDataService &DesktopDataService::getInstance()
 }
 
 DesktopDataService::DesktopDataService()
-    : //_envProvider(&mockEnvProvider)
-      _weatherProvider(&qWeatherProvider), _envCallback(nullptr), _weatherCallback(nullptr), _clockCallback(nullptr), _clock(), _lastClockTick(0), _bootTimestamp(0)
+    : _envProvider(&envMonitor)
+    , _weatherProvider(&qWeatherProvider)
+    , _envCallback(nullptr)
+    , _weatherCallback(nullptr)
+    , _clockCallback(nullptr)
+    , _clock()
+    , _lastClockTick(0)
+    , _bootTimestamp(0)
 {
 }
 
@@ -28,7 +36,7 @@ bool DesktopDataService::begin()
     _bootTimestamp = millis();
     _lastClockTick = 0;
 
-    // bool envOk = _envProvider->begin();
+    bool envOk = _envProvider->begin();
     bool weatherOk = _weatherProvider->begin();
     if (!weatherOk)
     {
@@ -37,25 +45,24 @@ bool DesktopDataService::begin()
         weatherOk = _weatherProvider->begin();
     }
 
-    // if (!envOk) {
-    //     DEBUG_PRINTLN("[DesktopData] 警告：环境数据源初始化失败");
-    // }
+    if (!envOk) {
+        DEBUG_PRINTLN("[DesktopData] 警告：环境数据源初始化失败");
+    }
     if (!weatherOk)
     {
         DEBUG_PRINTLN("[DesktopData] 警告：天气数据源初始化失败");
     }
 
-    // return envOk || weatherOk;
-    return weatherOk;
+    return envOk || weatherOk;
 }
 
 void DesktopDataService::update()
 {
-    // if (_envProvider && _envProvider->update()) {
-    //     if (_envCallback) {
-    //         _envCallback(_envProvider->getData());
-    //     }
-    // }
+    if (_envProvider && _envProvider->update()) {
+        if (_envCallback) {
+            _envCallback(_envProvider->getData());
+        }
+    }
 
     if (_weatherProvider && _weatherProvider->update())
     {

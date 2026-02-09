@@ -34,7 +34,7 @@ private:
     DesktopDataService(const DesktopDataService&) = delete;
     DesktopDataService& operator=(const DesktopDataService&) = delete;
 
-   // IEnvironmentProvider* _envProvider;
+    IEnvironmentProvider* _envProvider;
     IWeatherProvider* _weatherProvider;
     EnvironmentCallback _envCallback;
     WeatherCallback _weatherCallback;
