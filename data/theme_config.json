@@ -1,0 +1,11 @@
+{
+  "activeTheme": "/themes/theme1.json",
+  "themes": [
+    "/themes/theme1.json",
+    "/themes/theme2.json",
+    "/themes/theme3.json",
+    "/themes/theme4.json",
+    "/themes/theme5.json",
+    "/themes/theme6.json"
+  ]
+}

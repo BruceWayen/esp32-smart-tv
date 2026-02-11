@@ -1,0 +1,81 @@
+{
+  "background": {
+    "color": "#131B46",
+    "image": "/themes/theme_3.webp"
+  },
+  "text": {
+    "time": {
+      "x": 60,
+      "y": 56,
+      "size": 4,
+      "color": "#FFFFFF",
+      "value": "16:45"
+    },
+    "date": {
+      "x": 74,
+      "y": 102,
+      "size": 2,
+      "color": "#B9C4FF",
+      "value": "2026-10-24 THU"
+    },
+    "temp": {
+      "x": 20,
+      "y": 168,
+      "size": 2,
+      "color": "#F7F7FF",
+      "value": "WEATHER CLOUDY"
+    },
+    "humidity": {
+      "x": 20,
+      "y": 194,
+      "size": 2,
+      "color": "#F7F7FF",
+      "value": "HUM 45%"
+    },
+    "pressure": {
+      "x": 20,
+      "y": 220,
+      "size": 2,
+      "color": "#F7F7FF",
+      "value": "PRES 1013"
+    },
+    "alarm": {
+      "x": 14,
+      "y": 276,
+      "size": 2,
+      "color": "#FFDC73",
+      "value": "TODO 15:00"
+    }
+  },
+  "modules": {
+    "time": {
+      "x": 48,
+      "y": 38,
+      "w": 144,
+      "h": 98,
+      "opacity": 170,
+      "color": "#1B214E"
+    },
+    "environment": {
+      "x": 8,
+      "y": 150,
+      "w": 224,
+      "h": 92,
+      "opacity": 210,
+      "color": "#29315F"
+    },
+    "alarm": {
+      "x": 8,
+      "y": 262,
+      "w": 224,
+      "h": 44,
+      "opacity": 210,
+      "color": "#3D3440"
+    }
+  },
+  "images": {
+    "weatherIcon": "/icons/weather/cloudsun.bin",
+    "wifiIcon": "/icons/wifi_blue.png",
+    "batteryIcon": "/icons/battery_blue.png"
+  }
+}
