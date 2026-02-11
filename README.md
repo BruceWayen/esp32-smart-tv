@@ -290,3 +290,16 @@ MIT License
 - **串口切换**：发送 `n` 循环切换主题，发送 `r` 重新加载 `SPIFFS` 配置
 
 > 修改 JSON 后上传 SPIFFS（PlatformIO: Upload Filesystem Image），重启设备或串口发送 `r` 即可生效，无需重新编译固件。
+
+
+### 代码结构重构说明（软件工程化）
+
+为便于后续维护，显示与主题逻辑已拆分为多文件：
+
+- `src/display/TftDriver.h/.cpp`：屏幕底层驱动与基础绘图（像素、线、矩形、文本）
+- `src/theme/ThemeTypes.h`：主题数据结构定义
+- `src/theme/ThemeManager.h/.cpp`：SPIFFS + JSON 主题加载、切换、重载与索引持久化
+- `src/ui/DashboardRenderer.h/.cpp`：桌面布局渲染与天气图标占位渲染
+- `src/main.cpp`：系统初始化、按键/串口交互、主循环调度
+
+
