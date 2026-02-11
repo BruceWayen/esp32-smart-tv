@@ -1,9 +1,0 @@
-{
-  "icons": [
-    { "key": "sunny", "type": "sun", "color": "#FFD200" },
-    { "key": "cloudy", "type": "cloud", "color": "#C0C0C0" },
-    { "key": "rain", "type": "rain", "color": "#00CCFF" },
-    { "key": "snow", "type": "snow", "color": "#FFFFFF" },
-    { "key": "unknown", "type": "unknown", "color": "#FFFFFF" }
-  ]
-}
