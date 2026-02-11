@@ -21,9 +21,11 @@ DashboardRenderer g_renderer(g_display);
 unsigned long g_lastButtonTick = 0;
 unsigned long g_lastClockRefreshTick = 0;
 
+
 void renderCurrentTheme()
 {
     g_renderer.render(g_themeManager.theme(), g_themeManager.currentThemeNumber());
+
 }
 } // namespace
 
@@ -41,6 +43,7 @@ void setup()
         Serial.println("[文件系统] ❌ SPIFFS 挂载失败");
     }
     else
+
     {
         Serial.println("[文件系统] ✅ SPIFFS 挂载成功");
     }
@@ -52,6 +55,7 @@ void setup()
 }
 
 void loop()
+
 {
     if (digitalRead(THEME_SWITCH_BUTTON) == LOW && (millis() - g_lastButtonTick) > 350)
     {
@@ -60,6 +64,7 @@ void loop()
         {
             renderCurrentTheme();
         }
+
     }
 
     if (Serial.available())
@@ -74,6 +79,7 @@ void loop()
         {
             if (g_themeManager.reloadActiveTheme())
                 renderCurrentTheme();
+
         }
     }
 
@@ -85,3 +91,4 @@ void loop()
         renderCurrentTheme();
     }
 }
+

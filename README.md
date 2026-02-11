@@ -302,4 +302,4 @@ MIT License
 - `src/ui/DashboardRenderer.h/.cpp`：桌面布局渲染与天气图标占位渲染
 - `src/main.cpp`：系统初始化、按键/串口交互、主循环调度
 
-日志与注释统一采用中文，便于设备联调阶段快速定位问题。
+
