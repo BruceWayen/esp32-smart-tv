@@ -269,3 +269,24 @@ MIT License
 ---
 
 **Happy Coding! 🎉**
+
+## 🎨 主题配置（SPIFFS + JSON）
+
+本项目现支持从 `SPIFFS` 加载主题，默认文件：
+
+- `data/theme_config.json`：主题索引与当前激活主题
+- `data/themes/theme1.json` ~ `data/themes/theme6.json`
+
+### 支持配置项
+
+- **text**：时间/温湿度/气压/提醒文本的 `x`、`y`、`size`、`color`、`value`
+- **modules**：`time`、`environment`、`alarm` 的位置、尺寸、透明度、颜色
+- **background**：背景颜色和背景图片路径（路径用于后续图片渲染扩展）
+- **images**：天气图标、WiFi图标、电池图标路径/标识（天气图标读取 `images.weatherIcon` 路径（第一阶段先显示占位和文件名，后续再接图片解码））
+
+### 切换方式
+
+- **按键切换**：GPIO0 短按循环切换主题
+- **串口切换**：发送 `n` 循环切换主题，发送 `r` 重新加载 `SPIFFS` 配置
+
+> 修改 JSON 后上传 SPIFFS（PlatformIO: Upload Filesystem Image），重启设备或串口发送 `r` 即可生效，无需重新编译固件。
