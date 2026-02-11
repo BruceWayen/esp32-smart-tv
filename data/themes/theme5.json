@@ -1,0 +1,81 @@
+{
+  "background": {
+    "color": "#112033",
+    "image": "/themes/theme_5.webp"
+  },
+  "text": {
+    "time": {
+      "x": 156,
+      "y": 24,
+      "size": 3,
+      "color": "#FFFFFF",
+      "value": "14:30"
+    },
+    "date": {
+      "x": 142,
+      "y": 52,
+      "size": 2,
+      "color": "#AAC5E5",
+      "value": "2026-10-24 THU"
+    },
+    "temp": {
+      "x": 20,
+      "y": 170,
+      "size": 2,
+      "color": "#F8FCFF",
+      "value": "SUNNY 26C"
+    },
+    "humidity": {
+      "x": 20,
+      "y": 196,
+      "size": 2,
+      "color": "#F8FCFF",
+      "value": "HUM 45%"
+    },
+    "pressure": {
+      "x": 20,
+      "y": 222,
+      "size": 2,
+      "color": "#F8FCFF",
+      "value": "PRES 1013"
+    },
+    "alarm": {
+      "x": 14,
+      "y": 276,
+      "size": 2,
+      "color": "#FFD15E",
+      "value": "MEET 15:00"
+    }
+  },
+  "modules": {
+    "time": {
+      "x": 6,
+      "y": 8,
+      "w": 228,
+      "h": 58,
+      "opacity": 180,
+      "color": "#25354F"
+    },
+    "environment": {
+      "x": 8,
+      "y": 72,
+      "w": 224,
+      "h": 170,
+      "opacity": 185,
+      "color": "#2A3A55"
+    },
+    "alarm": {
+      "x": 8,
+      "y": 262,
+      "w": 224,
+      "h": 44,
+      "opacity": 205,
+      "color": "#3B3C2F"
+    }
+  },
+  "images": {
+    "weatherIcon": "/icons/weather/sunny.bin",
+    "wifiIcon": "/icons/wifi_blue2.png",
+    "batteryIcon": "/icons/battery_blue2.png"
+  }
+}
